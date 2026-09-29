@@ -1,0 +1,2 @@
+qqq_eod_2023.csv filter=lfs diff=lfs merge=lfs -text
+data/qqq_eod_2023.csv filter=lfs diff=lfs merge=lfs -text
