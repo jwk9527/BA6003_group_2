@@ -27,3 +27,15 @@ uv run project-option-chain --chain data/0623_588000SH2607.csv
 
 Results are saved to `output/`. The analysis assumes the supplied vendor data
 uses call-positive and put-negative GEX signs, matching the original notebook.
+
+
+---
+---
+loggings Oct.02
+
+
+<img width="665" height="1130" alt="pipeline_Oct02" src="https://github.com/user-attachments/assets/6804c015-1bee-4b72-9ae0-7d3cdf1c4685" />
+
+
+
+
