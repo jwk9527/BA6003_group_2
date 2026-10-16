@@ -1,0 +1,30 @@
+[project]
+name = "project-option-chain"
+version = "4.0.0"
+description = "A-share ETF option-chain dashboard: live GEX / IV / VIX analytics and option history (Streamlit)"
+readme = "README.md"
+authors = [
+    { name = "jwk9527", email = "C2600532@e.ntu.edu.sg" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "numpy>=2.3",
+    "openai>=1.100",
+    "pandas>=2.3",
+    "plotly>=6.0",
+    "pyarrow>=20.0",
+    "python-dotenv>=1.0",
+    "requests>=2.32",
+    "scipy>=1.16",
+    "streamlit>=1.50",
+]
+
+[dependency-groups]
+# Local-only tools for the monthly data build (NOT needed on Streamlit Cloud).
+local = [
+    "akshare>=1.17",
+]
+
+[build-system]
+requires = ["uv_build>=0.8,<0.13"]
+build-backend = "uv_build"
