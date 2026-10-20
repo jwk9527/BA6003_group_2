@@ -1,8 +1,8 @@
 """Option-chain dashboard — multipage entry point.
 
 Pages:
-- Live     (app_pages/live.py):    realtime / static option-chain analytics.
-- History  (app_pages/history.py): ETF option history (GEX & volatility).
+- History  (app_pages/history.py): ETF option history (GEX & volatility) — default page.
+- Live     (app_pages/live.py):    realtime option-chain analytics (iFinD token required).
 
 Run:
     uv run streamlit run dashboard.py
@@ -22,7 +22,7 @@ if str(ROOT / "src") not in sys.path:
 st.set_page_config(page_title="Option-Chain Dashboard", layout="wide")
 
 nav = st.navigation([
-    st.Page("app_pages/live.py", title="Live", icon="📡", default=True, url_path="live"),
-    st.Page("app_pages/history.py", title="History", icon="📈", url_path="history"),
+    st.Page("app_pages/history.py", title="History", icon="📈", default=True, url_path="history"),
+    st.Page("app_pages/live.py", title="Live", icon="📡", url_path="live"),
 ])
 nav.run()

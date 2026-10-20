@@ -29,6 +29,7 @@ from .models import ChainAnalysis
 
 HISTORY_COLUMNS = ["time", "source", "spot", "net_gex_million", "zero_gamma", "atm_iv", "call_wall", "put_wall"]
 MAX_HISTORY = 5000
+IDLE_STOP_SECONDS = 60.0  # stop when no page polled the worker for this long
 
 
 @dataclass(frozen=True)
@@ -47,13 +48,16 @@ class LiveState:
 
 
 class LiveWorker:
-    def __init__(self, spot_code: str, token: str, interval_s: float, archive_path: Path,
+    def __init__(self, spot_code: str, token: str, interval_s: float, archive: "Path | dict",
                  shibor_path: Path, live_dir: Path,
                  fetcher: Callable[[str, str, dict], pd.DataFrame] = fetch_realtime_all) -> None:
         self.spot_code, self._token, self.interval_s = spot_code, token, float(interval_s)
         if not token:
             raise ValueError("An iFinD access token is required for live data.")
-        self.archive_path, self.shibor_path = archive_path, shibor_path
+        # archive: a saved JSON path, or an in-memory dict (session-only archive on Cloud)
+        self._archive = archive
+        self.shibor_path = shibor_path
+        self._last_read = time.monotonic()
         self.live_dir, self._fetcher = live_dir, fetcher
         self._lock = threading.Lock()
         self._state = LiveState(source="WAITING")
@@ -81,6 +85,7 @@ class LiveWorker:
         return self._thread.is_alive()
 
     def snapshot(self) -> LiveState:
+        self._last_read = time.monotonic()  # page is alive (watchdog)
         with self._lock:
             return self._state
 
@@ -97,7 +102,7 @@ class LiveWorker:
         return df.to_dict("records")
 
     def _fetch_chain(self) -> pd.DataFrame:
-        archive = load_archive(self.archive_path)
+        archive = self._archive if isinstance(self._archive, dict) else load_archive(self._archive)
         return self._fetcher(self._token, self.spot_code, archive)
 
     def _tick(self) -> None:
@@ -150,6 +155,8 @@ class LiveWorker:
 
     def _run(self) -> None:
         while not self._stop.is_set():
+            if time.monotonic() - self._last_read > IDLE_STOP_SECONDS:
+                break  # no page has read the store for a while (tab closed) -> stop fetching
             started = time.monotonic()
             try:
                 self._tick()
@@ -157,5 +164,11 @@ class LiveWorker:
                 with self._lock:
                     self._state = replace(self._state, last_error=f"worker: {exc}")
             wait = max(0.5, self.interval_s - (time.monotonic() - started))
-            self._wake.wait(wait)
+            # long intervals: wake every few seconds to honour stop() / idle watchdog promptly
+            deadline = time.monotonic() + wait
+            while not self._stop.is_set() and time.monotonic() < deadline:
+                if self._wake.wait(min(5.0, max(0.0, deadline - time.monotonic()))):
+                    break
+                if time.monotonic() - self._last_read > IDLE_STOP_SECONDS:
+                    break
             self._wake.clear()

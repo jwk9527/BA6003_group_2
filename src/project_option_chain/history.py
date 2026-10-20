@@ -124,33 +124,63 @@ HELP = {
 # ---------------------------------------------------------------------------
 # Charts (styled by the shared template from charts.py)
 # ---------------------------------------------------------------------------
-def smile_figure(detail: pd.DataFrame, days: list[pd.Timestamp], spot: float) -> go.Figure:
+def overlay_style(age: int, n_prev: int) -> dict:
+    """Line style for a smile overlay: age 0 = selected day (solid, thickest, opaque);
+    earlier days dashed, progressively thinner and fainter (opacity ~0.85 → 0.3)."""
+    if age == 0:
+        return {"dash": "solid", "width": 3.2, "opacity": 1.0}
+    frac = 0.0 if n_prev <= 1 else (age - 1) / (n_prev - 1)
+    return {"dash": "dash", "width": round(2.2 - 1.2 * frac, 2), "opacity": round(0.85 - 0.55 * frac, 3)}
+
+
+def smile_figure(detail: pd.DataFrame, days: list[pd.Timestamp], spot: float,
+                 spots: dict | None = None) -> go.Figure:
+    """Call (left) and put (right) IV smiles for ``days`` (last = selected day).
+
+    One hue per side; the selected day is solid/thick/opaque, earlier days dashed and
+    progressively thinner/fainter. ``spots`` (date -> ETF close) adds a vertical price
+    line per day, styled like that day's curve, with hover showing date and price.
+    """
+    spots = dict(spots or {})
+    sel = days[-1]
+    spots.setdefault(sel, spot)
+    n_prev = len(days) - 1
     fig = make_subplots(rows=1, cols=2, shared_yaxes=True, horizontal_spacing=0.06,
                         subplot_titles=("Call IV", "Put IV"))
-    sel = days[-1]
+    valid = detail[detail["iv"] > 0]
+    y_lo = float(valid["iv"].min() * 100) if len(valid) else 0.0
+    y_hi = float(valid["iv"].max() * 100) if len(valid) else 1.0
     for col, (kind, color) in enumerate((("C", CALL), ("P", PUT)), start=1):
         for i, d in enumerate(days):
-            sub = detail[(detail["date"] == d) & (detail["option_type"] == kind) & (detail["iv"] > 0)]
-            sub = sub.sort_values("strike")
-            if sub.empty:
-                continue
             age = len(days) - 1 - i  # 0 = selected day
-            is_sel = d == sel
-            fig.add_trace(go.Scatter(
-                x=sub["strike"], y=sub["iv"] * 100, mode="lines+markers" if is_sel else "lines",
-                name=f"{d:%m-%d}" + (" (selected)" if is_sel else f" (−{age}d)"),
-                legendgroup=str(d.date()), showlegend=col == 1,
-                line=dict(color=color, width=2.6 if is_sel else 1.4, dash="solid" if is_sel else "dash"),
-                opacity=1.0 if is_sel else max(0.25, 0.8 - 0.12 * age),
-                marker=dict(size=7),
-                hovertemplate=f"{d:%Y-%m-%d}<br>K %{{x:.3f}} · IV %{{y:.2f}}%<extra></extra>"),
-                row=1, col=col)
-        fig.add_vline(x=spot, line=dict(color=SPOT, dash="dot", width=1.5), row=1, col=col,
-                      annotation_text=f"Spot {spot:.3f}", annotation_position="top right",
-                      annotation_font_color=SPOT)
+            sty = overlay_style(age, n_prev)
+            is_sel = age == 0
+            label = f"{d:%Y-%m-%d}" + (" (selected)" if is_sel else f" (−{age}d)")
+            sub = detail[(detail["date"] == d) & (detail["option_type"] == kind) & (detail["iv"] > 0)].sort_values("strike")
+            if not sub.empty:
+                fig.add_trace(go.Scatter(
+                    x=sub["strike"], y=sub["iv"] * 100, mode="lines+markers" if is_sel else "lines",
+                    name=label, legendgroup=str(d.date()), showlegend=col == 1,
+                    line=dict(color=color, width=sty["width"], dash=sty["dash"]), opacity=sty["opacity"],
+                    marker=dict(size=7),
+                    meta={"kind": "smile", "date": f"{d:%Y-%m-%d}", "side": kind},
+                    hovertemplate=f"{d:%Y-%m-%d}<br>K %{{x:.3f}} · IV %{{y:.2f}}%<extra></extra>"),
+                    row=1, col=col)
+            px = spots.get(d)
+            if px is not None and np.isfinite(px):
+                fig.add_trace(go.Scatter(
+                    x=[px, px], y=[y_lo, y_hi], mode="lines", name=f"ETF close {d:%m-%d}: {px:.3f}",
+                    legendgroup=str(d.date()), showlegend=False,
+                    line=dict(color=SPOT, width=sty["width"] * 0.8, dash=sty["dash"]), opacity=sty["opacity"],
+                    meta={"kind": "price", "date": f"{d:%Y-%m-%d}", "side": kind},
+                    hovertemplate=f"{d:%Y-%m-%d}<br>ETF close {px:.3f}<extra></extra>"),
+                    row=1, col=col)
+        fig.add_annotation(x=spots[sel], y=y_hi, xref=f"x{'' if col == 1 else col}", yref="y",
+                           text=f"{sel:%Y-%m-%d} close {spots[sel]:.3f}", showarrow=False, yshift=12,
+                           font=dict(color=SPOT, size=11))
         fig.update_xaxes(title_text="Strike price", row=1, col=col)
     fig.update_yaxes(title_text="Implied volatility (%)", row=1, col=1)
-    fig.update_layout(hovermode="closest", legend=dict(y=1.1))
+    fig.update_layout(hovermode="closest", legend=dict(y=1.12, orientation="h", title_text="Trading day"))
     return fig
 
 

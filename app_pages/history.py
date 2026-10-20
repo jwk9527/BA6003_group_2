@@ -42,13 +42,41 @@ def show(fig, key: str, height: int, dates: bool = False) -> None:
     show_figure(st, fig, key, height, dates)
 
 
+CSS = """
+<style>
+section[data-testid="stSidebar"] .block-container, section[data-testid="stSidebar"] > div > div { padding-top: 1.2rem; }
+section[data-testid="stSidebar"] [data-testid="stVerticalBlock"] { gap: 1.1rem; }
+[data-testid="stMetric"] { padding: 0.6rem 0.9rem; border: 1px solid rgba(255,255,255,0.08); border-radius: 8px;
+                           background: rgba(255,255,255,0.02); }
+.main .block-container, [data-testid="stMainBlockContainer"] { padding-top: 2.2rem; padding-bottom: 4rem; }
+h2 { margin-top: 1.6rem !important; }
+</style>
+"""
+CARDS_PER_ROW = 4
+
+
+def spacer(px: int = 18) -> None:
+    st.markdown(f"<div style='height:{px}px'></div>", unsafe_allow_html=True)
+
+
+def card_grid(cards) -> None:
+    for i in range(0, len(cards), CARDS_PER_ROW):
+        cols = st.columns(CARDS_PER_ROW, gap="medium")
+        for c, (label, value, h) in zip(cols, cards[i:i + CARDS_PER_ROW]):
+            c.metric(label, value, help=h)
+        spacer(6)
+
+
 def main() -> None:
+    st.markdown(CSS, unsafe_allow_html=True)
     st.title("ETF Option History: GEX & Volatility")
     etfs = available_etfs()
     if not etfs:
         st.error(f"No history data found under {DATA_ROOT}/<ETF>/matrix.parquet — build it with "
                  "scripts/build_history.py (see README) or set ETF_HIST_DATA.")
         st.stop()
+    st.sidebar.header("History")
+    st.sidebar.subheader("Underlying")
     code = st.sidebar.selectbox("ETF", etfs, format_func=lambda c: f"{c} · {NAMES.get(c, c)}", key="hist_etf")
     path = DATA_ROOT / code / "matrix.parquet"
     try:
@@ -58,15 +86,19 @@ def main() -> None:
         st.stop()
     gex_file = gex_path(code)
     gex_mtime = gex_file.stat().st_mtime if gex_file.is_file() else 0.0
+    front = matrix[matrix["is_front"]].set_index("date")
+    dates = list(front.index)
+    # bottom of the sidebar: VIX setting + data coverage
+    st.sidebar.divider()
+    st.sidebar.subheader("VIX settings")
     roll = st.sidebar.toggle(ROLL_LABEL, value=False, key="hist_vix_roll",
                              help="VIX (30-day) normally uses the two nearest expiries. When on, a near expiry with "
                                   "fewer than 7 calendar days left is skipped and the next two expiries are used. "
                                   "Affects the VIX card, VRP30 and the VIX chart.")
+    st.sidebar.divider()
+    st.sidebar.caption(f"Data {dates[0]:%Y-%m-%d} — {dates[-1]:%Y-%m-%d} · {len(dates)} trading days")
     vix = load_vix(code, path.stat().st_mtime, roll)
     vix_help = HELP["vix"] + (HELP["vix_roll"] if roll else "")
-    front = matrix[matrix["is_front"]].set_index("date")
-    dates = list(front.index)
-    st.sidebar.caption(f"Data {dates[0]:%Y-%m-%d} — {dates[-1]:%Y-%m-%d} · {len(dates)} trading days")
 
     # ================= Module 1: single day =================
     st.header("① Single-day view", divider="gray")
@@ -95,17 +127,18 @@ def main() -> None:
         ("VRP30", fmt(vrow["vrp30_calc"], "+.2f"), HELP["vrp"]),
         ("Days to expiry", fmt(row["days_to_expiry"], ".0f"), HELP["dte"]),
     ]
-    for i in range(0, len(cards), 6):
-        for c, (label, value, h) in zip(st.columns(6), cards[i:i + 6]):
-            c.metric(label, value, help=h)
+    with st.container(border=True):
+        card_grid(cards)
+    spacer()
 
     # --- volatility smile
     month_dates = list(matrix.loc[matrix["month"] == month, "date"])
     k = month_dates.index(day)
-    c1, c2 = st.columns([3, 1])
+    c1, c2 = st.columns([3, 1], gap="large", vertical_alignment="bottom")
     c1.subheader("Volatility smile", help="Implied volatility by strike for the main contract on the selected date "
                                   "(contract detail; IV ≤ 0 not drawn). Left: calls, right: puts. Dashed lines: the same "
-                                  "expiry month on the previous N trading days (fainter = earlier). Dotted line: spot.")
+                                  "expiry month on the previous N trading days (same colour, thinner and fainter = earlier). Vertical lines: ETF close "
+                                  "of each shown day, styled like that day's curve.")
     n_prev = c2.select_slider("Overlay previous N trading days", options=list(range(6)), value=0, key="hist_prev")
     smile_days = month_dates[max(0, k - n_prev):k + 1]
     detail = None
@@ -118,20 +151,23 @@ def main() -> None:
             if detail[detail["date"] == day].empty:
                 st.warning(f"No contract detail in gex.parquet for {day:%Y-%m-%d} / {month_label(month)}.")
             else:
-                show(smile_figure(detail, smile_days, float(row["ETF_close"])), "hist_smile", 430)
+                spots = front.loc[front.index.isin(smile_days), "ETF_close"].to_dict()
+                show(smile_figure(detail, smile_days, float(row["ETF_close"]), spots), "hist_smile", 500)
         except Exception as exc:
             st.error(f"Could not read gex detail: {exc}")
 
     # --- main contract lifetime
+    spacer()
     life = matrix[matrix["month"] == month]
     st.subheader(f"{month_label(month)} contract lifetime: key levels",
                  help="All trading days on which this expiry month exists in matrix. Top: ETF close, call wall, put wall, "
                       "max pain, zero gamma. Bottom: this month's net GEX (M CNY). Vertical line: selected date.")
-    show(lifetime_figure(life, day), "hist_life", 520, dates=True)
+    show(lifetime_figure(life, day), "hist_life", 580, dates=True)
+    spacer(28)
 
     # ================= Module 2: date range =================
     st.header("② Date-range view", divider="gray")
-    c1, c2 = st.columns([2, 3])
+    c1, c2 = st.columns([2, 3], gap="large")
     default_start = max(dates[0], dates[-1] - pd.DateOffset(years=1))
     rng = c1.date_input("Date range", value=(default_start, dates[-1]), min_value=dates[0], max_value=dates[-1],
                         key="hist_range")
@@ -156,19 +192,22 @@ def main() -> None:
     st.subheader("ETF price & net GEX", help="Top: ETF close. Bottom: net GEX (M CNY): with main contract only, a "
                                        "continuous series of each day's main month (switches month at expiry); with "
                                        "chosen months, one line per expiry month.")
-    show(price_gex_figure(price, sub, by_month=not mode.startswith("Main")), "hist_price_gex", 520, dates=True)
+    spacer()
+    show(price_gex_figure(price, sub, by_month=not mode.startswith("Main")), "hist_price_gex", 580, dates=True)
+    spacer()
 
     v = vix[(vix["date"] >= start) & (vix["date"] <= end)]
     st.subheader("VIX vs historical volatility", help="Top: VIX (30-day, CBOE method on settlement prices, see "
                                      "Metric definitions" + ("; near month rolled at <7 DTE" if roll else "") +
                                      "), HV30 (solid), HV60/HV90 (dashed). Bottom: VRP30 = VIX − HV30. "
                                      "All in %; not affected by the contract filter.")
-    show(vol_figure(v), "hist_vol", 480, dates=True)
+    show(vol_figure(v), "hist_vol", 540, dates=True)
+    spacer()
 
     with st.expander("Data preview & download"):
         drop = ["vix30", "vix_method", "vrp30"] if roll else ["vix30_roll7", "vix_method_roll7", "vrp30_roll7"]
         table = sub.drop(columns=drop).sort_values(["date", "days_to_expiry"])
-        st.dataframe(table, hide_index=True, height=300)
+        st.dataframe(table, hide_index=True, height=380)
         st.download_button("Download CSV", table.to_csv(index=False).encode("utf-8-sig"),
                            file_name=f"{code}_{start:%Y%m%d}_{end:%Y%m%d}.csv", mime="text/csv")
 

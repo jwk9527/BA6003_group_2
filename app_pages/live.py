@@ -14,6 +14,7 @@ Page 1 ("Live") of the multipage app; run via:
 from __future__ import annotations
 
 import hashlib
+import json
 import sys
 from datetime import date
 from pathlib import Path
@@ -32,7 +33,8 @@ from project_option_chain.archive import (  # noqa: E402
     parse_codes,
     save_archive,
 )
-from project_option_chain.config import DATA_DIR, SHIBOR_PATH  # noqa: E402
+from project_option_chain import session_log as SL  # noqa: E402
+from project_option_chain.config import DATA_DIR, SHIBOR_PATH, archive_persist_mode  # noqa: E402
 from project_option_chain.charts import (  # noqa: E402
     gamma_exposure_figure,
     intraday_figure,
@@ -42,7 +44,7 @@ from project_option_chain.live_worker import LiveState, LiveWorker  # noqa: E402
 
 ARCHIVE_DIR = DATA_DIR / "archives"
 LIVE_DIR = DATA_DIR / "live"  # realtime snapshots (one CSV per underlying)
-INTERVAL_SECONDS = {"60s": 60, "30s": 30, "10s": 10}
+INTERVAL_SECONDS = {"10s": 10, "30s": 30, "60s": 60, "15 min": 900, "30 min": 1800, "60 min": 3600}
 UI_POLL = "2s"  # how often the page re-reads the worker store (no network)
 from project_option_chain.charts import PLOTLY_CONFIG  # noqa: E402
 
@@ -252,14 +254,14 @@ def source_badge(state: LiveState) -> None:
 
 
 @st.cache_resource(max_entries=4)
-def get_worker(spot: str, token_hash: str, interval_s: int, _token: str) -> LiveWorker:
-    """One background worker per (spot, token, interval); older ones are stopped."""
+def get_worker(spot: str, token_hash: str, interval_s: int, archive_key: str, _token: str,
+               _archive: dict) -> LiveWorker:
+    """One background worker per (spot, token, interval, archive); older ones are stopped."""
     reg = _worker_registry()
     for old in list(reg):
         old.stop()
         reg.remove(old)
-    worker = LiveWorker(spot, _token, interval_s, ARCHIVE_DIR / f"{spot}.json", SHIBOR_PATH,
-                        LIVE_DIR).start()
+    worker = LiveWorker(spot, _token, interval_s, _archive, SHIBOR_PATH, LIVE_DIR).start()
     reg.append(worker)
     return worker
 
@@ -278,6 +280,39 @@ def stop_all_workers() -> None:
     get_worker.clear()
 
 
+def current_archive(spot: str) -> tuple[dict | None, str]:
+    """(archive, source): session archive first, then data/archives/<spot>.json."""
+    sess = st.session_state.setdefault("live_archives", {})
+    if spot in sess:
+        return sess[spot], "session (not saved to disk)"
+    path = ARCHIVE_DIR / f"{spot}.json"
+    if path.is_file():
+        try:
+            return load_archive(path), f"file `data/archives/{path.name}`"
+        except Exception as exc:  # noqa: BLE001
+            st.sidebar.error(f"Saved archive could not be read: {exc}")
+    return None, ""
+
+
+def session_log_section(log: dict, key: str) -> None:
+    """Session log table + downloads (data lives only in this browser session)."""
+    st.header("Session log", divider="gray")
+    st.caption("One row per successful refresh while Live is on. Kept only in this browser session "
+               "(memory, not saved on the server); cleared when the page is reloaded or the tab is closed. "
+               f"Full-chain snapshots: last {SL.MAX_SNAPSHOTS} kept"
+               + (f" ({log['dropped_snapshots']} older snapshots dropped)." if log["dropped_snapshots"] else "."))
+    if not log["rows"]:
+        st.info("No refreshes logged yet.")
+        return
+    st.dataframe(SL.summary_frame(log).iloc[::-1], hide_index=True, height=260)
+    stamp = pd.Timestamp.now().strftime("%Y%m%d_%H%M%S")
+    c1, c2, _ = st.columns([1, 1, 2])
+    c1.download_button("Download summary CSV", SL.summary_csv(log), file_name=f"live_summary_{stamp}.csv",
+                       mime="text/csv", key=f"{key}_dl_csv")
+    c2.download_button(f"Download snapshots ZIP ({len(log['snapshots'])} chains + summary)", SL.snapshots_zip(log),
+                       file_name=f"live_snapshots_{stamp}.zip", mime="application/zip", key=f"{key}_dl_zip")
+
+
 # ---------------------------------------------------------------------------
 # Sidebar
 # ---------------------------------------------------------------------------
@@ -287,17 +322,19 @@ GUIDE = """
 1. **iFinD token** – paste your iFinD (同花顺 iFinD HTTP API) access token in the sidebar.
    It is kept in this browser session only; it is never stored in the repo or written to logs.
 2. **Underlying** – pick the ETF (e.g. `588000.SH`).
-3. **Contract codes** – turn on **Live refresh**, then paste the iFinD contract codes of the
-   **front-month** expiry (comma or newline separated). Optionally paste the **next-month** codes
-   (needed for the 30-day VIX interpolation and the *Include next month* GEX view).
-4. **Archive query date** – a trading day (on weekends/holidays pick the last trading day),
-   then click **Save archive**. This fetches names, strikes, expiry, multiplier and HV once.
-5. **Refresh interval** – 10 s to 60 s. The page then shows ① OI & GEX, ② implied volatility and
-   ③ VIX/VRP, updating in the background.
+3. **Contract archive** – a built-in archive is used when available (as-of date and contract count are shown).
+   To change contracts open **Update contract codes**, paste the iFinD codes of the **front-month** expiry
+   (optionally the **next-month** codes, needed for the 30-day VIX interpolation and the next-month GEX view),
+   pick a trading day and click **Save archive**.
+4. **Refresh interval** – 10 s to 60 min, then turn on **Live refresh**. The page shows ① OI & GEX,
+   ② implied volatility and ③ VIX/VRP, updated in the background, plus a downloadable **session log**.
 
-Live data needs network access to the iFinD API. If a fetch fails, the error is shown and the
-last good snapshot (if any) is kept, marked **STALE**. Historical analytics are on the **History** page.
+Refreshing stops when Live is turned off or the browser tab is closed. If a fetch fails, the error is shown and
+the last good snapshot (if any) is kept, marked **STALE**. Historical analytics are on the **History** page.
 """
+
+persist = archive_persist_mode()
+log = st.session_state.setdefault("live_log", SL.new_log())
 
 st.sidebar.header("Live settings")
 token = st.sidebar.text_input(
@@ -306,60 +343,61 @@ token = st.sidebar.text_input(
     help="Entered here only; never stored in the repo or written to logs.",
 ).strip()
 spot_code = st.sidebar.selectbox("Underlying ETF", known_archives())
-interval = st.sidebar.selectbox("Refresh interval", ["60s", "30s", "10s"], index=1)
-live = st.sidebar.toggle("Live refresh", value=False, disabled=not token,
-                         help="Requires an iFinD token." if not token else None)
-live = live and bool(token)
 
-archive_path = ARCHIVE_DIR / f"{spot_code}.json"
-archive_ready = False
-if live:
-    st.sidebar.subheader("Contract archive")
-    codes_text = st.sidebar.text_area(
-        "Paste contract codes from iFinD (front-month expiry)",
-        help="Comma / newline separated. Codes for the main (front-month) "
-             "expiry of the selected underlying.",
-    )
-    next_codes_text = st.sidebar.text_area(
-        "Next-month codes (for VIX)",
-        help="Optional. Codes for the next expiry; used by the VIX module "
-             "(30-day interpolation needs two expiries) and the next-month GEX merge.",
-    )
-    query_date = st.sidebar.date_input(
-        "Archive query date",
-        value=date.today(),
-        help="date_sequence only returns name/expiry data on trading days. "
-             "On weekends/holidays pick the nearest trading day, "
-             "otherwise the archive comes back empty.",
-    )
-    if st.sidebar.button("Save archive", disabled=not codes_text.strip()):
+st.sidebar.divider()
+st.sidebar.subheader("Contract archive")
+archive, archive_src = current_archive(spot_code)
+if archive:
+    n_next = len((archive.get("next") or {}).get("codes", {}))
+    st.sidebar.caption(f"Source: {archive_src}  \nAs of {archive.get('as_of_date', '—')} · front "
+                       f"{len(archive.get('codes', {}))} contracts"
+                       + (f" · next {archive['next'].get('expiry', '')} ({n_next})" if n_next else " · no next month"))
+else:
+    st.sidebar.warning("No archive for this underlying yet — add contract codes below.")
+
+with st.sidebar.expander("Update contract codes", expanded=archive is None):
+    codes_text = st.text_area("Front-month contract codes", key="arch_front",
+                              help="iFinD codes of the main (front-month) expiry, comma or newline separated.")
+    next_codes_text = st.text_area("Next-month codes (optional, for VIX)", key="arch_next",
+                                   help="Codes of the next expiry; used by the 30-day VIX and the next-month GEX merge.")
+    query_date = st.date_input("Archive query date", value=date.today(), key="arch_date",
+                               help="date_sequence only returns name/expiry data on trading days; on weekends or "
+                                    "holidays pick the last trading day.")
+    st.caption("Saving writes `data/archives/<spot>.json`." if persist == "file" else
+               "Session-only: the archive is kept in this browser session (not written on the server). "
+               "Use **Download archive json** to keep a copy.")
+    if st.button("Save archive", key="arch_save", disabled=not (token and codes_text.strip()),
+                 help=None if token else "Requires the iFinD token."):
         with st.spinner("Building archive via the daily endpoint..."):
             try:
-                archive = build_archive_with_next(
+                new = build_archive_with_next(
                     token, spot_code, parse_codes(codes_text),
-                    parse_codes(next_codes_text) if next_codes_text.strip() else None,
-                    query_date.isoformat())
-                save_archive(archive_path, archive)
-                n_missing = len(archive.get("missing", []))
-                st.sidebar.success(
-                    f"Archive saved for {spot_code}: {len(archive['codes'])} contracts "
-                    + (f"({n_missing} codes skipped: {', '.join(archive['missing'])})" if n_missing else "")
-                    + (f" · next month {archive['next']['expiry']}: {len(archive['next']['codes'])} contracts"
-                       if archive.get("next") else "")
-                )
+                    parse_codes(next_codes_text) if next_codes_text.strip() else None, query_date.isoformat())
+                if persist == "file":
+                    save_archive(ARCHIVE_DIR / f"{spot_code}.json", new)
+                    st.session_state["live_archives"].pop(spot_code, None)
+                else:
+                    st.session_state["live_archives"][spot_code] = new
+                miss = new.get("missing", [])
+                st.success(f"Archive saved ({persist}): {len(new['codes'])} contracts"
+                           + (f", {len(miss)} codes skipped" if miss else ""))
+                archive, archive_src = current_archive(spot_code)
             except Exception as exc:  # noqa: BLE001
-                st.sidebar.error(f"Archive failed: {exc}")
-    if archive_path.is_file():
-        try:
-            _a = load_archive(archive_path)
-            _n = _a.get("next")
-            st.sidebar.caption(f"Using saved archive `{spot_code}.json` · front {len(_a['codes'])} contracts"
-                               + (f" · next {_n['expiry']} ({len(_n['codes'])})" if _n else " · no next month"))
-            archive_ready = True
-        except Exception as exc:  # noqa: BLE001
-            st.sidebar.error(f"Saved archive could not be read: {exc}")
-    else:
-        st.sidebar.warning("No archive yet — paste contract codes above and click **Save archive**.")
+                st.error(f"Archive failed: {exc}")
+    if archive:
+        st.download_button("Download archive json", json.dumps(archive, ensure_ascii=False, indent=2).encode("utf-8"),
+                           file_name=f"{spot_code}.json", mime="application/json", key="arch_dl")
+
+st.sidebar.divider()
+st.sidebar.subheader("Refresh")
+interval = st.sidebar.selectbox(
+    "Refresh interval", list(INTERVAL_SECONDS), index=1, key="live_interval",
+    help="How often the background worker fetches a new chain (10 s – 60 min). Refreshing stops when Live is "
+         "turned off or when the browser tab is closed.")
+can_live = bool(token) and archive is not None
+live = st.sidebar.toggle("Live refresh", value=False, disabled=not can_live, key="live_on",
+                         help=None if can_live else "Requires an iFinD token and a contract archive.")
+live = live and can_live
 
 # ---------------------------------------------------------------------------
 # Main page
@@ -370,25 +408,25 @@ if not live:
     stop_all_workers()  # live switched off -> no background fetching
     if not token:
         st.info("No live data: enter an iFinD access token in the sidebar to start.")
+    elif archive is None:
+        st.info("Add contract codes under **Update contract codes** in the sidebar, then turn on **Live refresh**.")
     else:
-        st.info("Token entered. Turn on **Live refresh** in the sidebar to set up contract codes and start.")
+        st.info("Ready. Turn on **Live refresh** in the sidebar to start.")
     st.markdown(GUIDE)
-elif not archive_ready:
-    st.info("Live mode needs a contract archive: paste the front-month contract codes in the sidebar "
-            "and click **Save archive**.")
-    st.markdown(GUIDE)
+    if log["rows"]:
+        session_log_section(log, "stopped")
 else:
     token_hash = hashlib.sha256(token.encode()).hexdigest()[:16]
+    archive_key = hashlib.sha256(json.dumps(archive, sort_keys=True, default=str).encode()).hexdigest()[:16]
     try:
-        worker = get_worker(spot_code, token_hash, INTERVAL_SECONDS[interval], token)
+        worker = get_worker(spot_code, token_hash, INTERVAL_SECONDS[interval], archive_key, token, archive)
         if not worker.alive:  # thread died or was stopped by a newer one -> rebuild
             get_worker.clear()
-            worker = get_worker(spot_code, token_hash, INTERVAL_SECONDS[interval], token)
+            worker = get_worker(spot_code, token_hash, INTERVAL_SECONDS[interval], archive_key, token, archive)
     except Exception as exc:  # noqa: BLE001
         st.error(f"Could not start the live worker: {exc}")
         st.stop()
 
-    archive = load_archive(archive_path)
     with st.expander("Data pipeline status", expanded=False):
         dsc, rqc = st.columns(2)
         with dsc:
@@ -403,13 +441,14 @@ else:
             )
         with rqc:
             st.markdown("**RQ · background worker**")
-            st.write(f"iFinD realtime · every {INTERVAL_SECONDS[interval]}s")
+            st.write(f"iFinD realtime · every {interval}")
             if st.button("Fetch now"):
                 worker.refresh_now()
 
     @st.fragment(run_every=UI_POLL)
     def live_view():
         state = worker.snapshot()  # in-memory read only, never touches the network
+        SL.append(log, state)      # page-side handoff into session_state (thread-safe)
         source_badge(state)
         if state.fetch_seconds is not None:
             st.caption(f"Snapshots this session: {state.n_snapshots} · last fetch+calc "
@@ -420,22 +459,23 @@ else:
                            "to the iFinD API; the worker keeps retrying on the refresh interval.")
             else:
                 st.info("Waiting for the background worker's first snapshot…")
-            return
-        try:
-            st.subheader("Intraday")
-            st.plotly_chart(intraday_figure(state.history), width="stretch",
-                            key="live_intraday", config=PLOTLY_CONFIG)
-            label = {"LIVE": f"realtime {spot_code}", "STALE": f"STALE realtime {spot_code}"}.get(
-                state.source, state.source)
-            render_analysis(state.analysis, f"{label} @ {state.data_time:%H:%M:%S}", "live", state.vix,
-                            next_chain=(state.full_chain[state.full_chain["month"] == "next"]
-                                        if state.full_chain is not None and "month" in state.full_chain else None))
-            chain_df = state.chain
-            display_cols = ["thscode", "name", "option_type", "strike", "expiry",
-                            "oi", "iv", "delta", "gamma"]
-            with st.expander("Realtime option chain (RQ)"):
-                st.dataframe(chain_df[display_cols] if set(display_cols).issubset(chain_df.columns) else chain_df)
-        except Exception as exc:  # noqa: BLE001 - never crash the page on a bad snapshot
-            st.error(f"Could not render the live snapshot: {type(exc).__name__}: {exc}")
+        else:
+            try:
+                st.subheader("Intraday")
+                st.plotly_chart(intraday_figure(state.history), width="stretch",
+                                key="live_intraday", config=PLOTLY_CONFIG)
+                label = {"LIVE": f"realtime {spot_code}", "STALE": f"STALE realtime {spot_code}"}.get(
+                    state.source, state.source)
+                render_analysis(state.analysis, f"{label} @ {state.data_time:%H:%M:%S}", "live", state.vix,
+                                next_chain=(state.full_chain[state.full_chain["month"] == "next"]
+                                            if state.full_chain is not None and "month" in state.full_chain else None))
+                chain_df = state.chain
+                display_cols = ["thscode", "name", "option_type", "strike", "expiry",
+                                "oi", "iv", "delta", "gamma"]
+                with st.expander("Realtime option chain (RQ)"):
+                    st.dataframe(chain_df[display_cols] if set(display_cols).issubset(chain_df.columns) else chain_df)
+            except Exception as exc:  # noqa: BLE001 - never crash the page on a bad snapshot
+                st.error(f"Could not render the live snapshot: {type(exc).__name__}: {exc}")
+        session_log_section(log, "live")
 
     live_view()

@@ -55,3 +55,29 @@ hv = compute_hv(d)
 assert hv["hv30"].dropna().abs().max() < 1e-9
 print("hv OK")
 print("ALL OK")
+
+# smile overlay: same hue, styles by age, one price line per day per side
+from project_option_chain.history import overlay_style, smile_figure  # noqa: E402
+days = [pd.Timestamp(f"2026-09-{d}") for d in (24, 25, 26, 29, 30)]
+rows = []
+for i, d in enumerate(days):
+    for k in (1.5, 1.6, 1.7):
+        for t in ("C", "P"):
+            rows.append({"date": d, "option_type": t, "strike": k, "iv": 0.3 + 0.01 * i})
+det = pd.DataFrame(rows)
+spots = {d: 1.6 + 0.01 * i for i, d in enumerate(days)}
+fig = smile_figure(det, days, spots[days[-1]], spots)
+smiles = [t for t in fig.data if (t.meta or {}).get("kind") == "smile"]
+prices = [t for t in fig.data if (t.meta or {}).get("kind") == "price"]
+assert len(smiles) == 10 and len(prices) == 10
+sel = [t for t in smiles if t.meta["date"] == "2026-09-30"]
+assert all(t.line.dash == "solid" and t.opacity == 1.0 for t in sel)
+calls = [t for t in smiles if t.meta["side"] == "C"]
+assert len({t.line.color for t in calls}) == 1  # one hue per side
+op = [t.opacity for t in calls]; wd = [t.line.width for t in calls]
+assert op == sorted(op) and wd == sorted(wd) and abs(op[0] - 0.3) < 1e-9 and abs(op[-2] - 0.85) < 1e-9
+for t in prices:
+    s = [x for x in smiles if x.meta["date"] == t.meta["date"]][0]
+    assert t.line.dash == s.line.dash and t.opacity == s.opacity and t.x[0] == spots[pd.Timestamp(t.meta["date"])]
+assert overlay_style(0, 0)["dash"] == "solid"
+print("smile overlay OK")
