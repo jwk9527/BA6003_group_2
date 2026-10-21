@@ -12,6 +12,16 @@ A Streamlit dashboard for A-share ETF options (510050, 510300, 510500, 588000, 5
 - **History** (default page): daily option-chain metrics for 5 ETFs since listing. Metrics: net GEX, zero gamma, call/put walls, max pain, ATM IV, call/put IV smiles with a previous-day overlay, 25Δ skew, 30-day VIX (CBOE method), HV30/60/90 and VRP30. It also has an optional AI summary of the current view (OpenRouter).
 - **Live**: the realtime main-contract (front-month) chain from iFinD. It needs your own iFinD token and shows ① OI & GEX, ② implied volatility, ③ VIX/VRP, plus a downloadable session log.
 
+### Our Benchmarks
+
+- openvlab.cn: providing partial A-share ETF options info with premium required. still WIP
+- Futu app: providing sufficiently mature option chains info, but does not cover the A-share
+- unusualwhales.com: providing advanced option chain analysis with premium required.
+- SpotGamma.com: providing US option info, with premium required
+  
+### Our Uniqueness
+- A-share ETF oriented, providing open dashboard and transparent pipeline, back-testing supported.
+
 ### For dashboard users
 
 **Install and run locally (recommended)**
