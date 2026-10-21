@@ -23,7 +23,8 @@ from .config import PROJECT_ROOT
 BASE_URL = os.environ.get("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
 DEFAULT_MODEL = "deepseek/deepseek-v4.1-flash"
 TEMPERATURE = 0
-MAX_TOKENS = 600
+MAX_TOKENS = 2000  # headroom for reasoning models (reasoning tokens count against max_tokens)
+REASONING = {"effort": "low", "exclude": True}  # OpenRouter unified reasoning control
 MAX_TABLE_ROWS = 60
 MAX_PROMPT_CHARS = 12_000
 TZ = ZoneInfo("Asia/Singapore")
@@ -266,6 +267,26 @@ def friendly_error(exc: Exception, model: str) -> str:
     return f"{name}: {exc}"
 
 
+def extract_text(resp) -> tuple[str, str | None]:
+    """(answer text, finish_reason). Uses message.content; if that is empty, falls back to a
+    reasoning field (``reasoning`` / ``reasoning_content``) some reasoning models return instead."""
+    if not resp or not getattr(resp, "choices", None):
+        return "", None
+    choice = resp.choices[0]
+    finish = getattr(choice, "finish_reason", None)
+    msg = choice.message
+    text = (getattr(msg, "content", None) or "").strip()
+    if not text:
+        for field in ("reasoning", "reasoning_content"):
+            val = getattr(msg, field, None)
+            if val is None and hasattr(msg, "model_extra"):
+                val = (msg.model_extra or {}).get(field)
+            if isinstance(val, str) and val.strip():
+                text = val.strip()
+                break
+    return text, finish
+
+
 def generate_view_summary(api_key: str, current_view_text: str, view_df: pd.DataFrame | None,
                           definitions: str = "", *, model: str | None = None, client=None,
                           meta: dict | None = None, log_file: Path | None = None,
@@ -291,12 +312,16 @@ def generate_view_summary(api_key: str, current_view_text: str, view_df: pd.Data
             client = OpenAI(api_key=api_key, base_url=(base_url or BASE_URL), timeout=45.0, max_retries=1)
         if count_usage:
             _bump_usage()  # count every attempted API call on the app's default key
+        extra = {"extra_body": {"reasoning": REASONING}} if "openrouter.ai" in (base_url or BASE_URL) else {}
         resp = client.chat.completions.create(
             model=model, temperature=TEMPERATURE, max_tokens=MAX_TOKENS,
-            messages=[{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": user_prompt}])
-        text = (resp.choices[0].message.content or "").strip() if resp and resp.choices else ""
+            messages=[{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": user_prompt}],
+            **extra)
+        text, finish = extract_text(resp)
         if not text:
-            raise ValueError("The model returned an empty response.")
+            hint = (" The token budget was used up (likely by model reasoning); try a non-reasoning model."
+                    if finish == "length" else "")
+            raise ValueError(f"The model returned an empty response (finish_reason={finish}).{hint}")
         usage = getattr(resp, "usage", None)
         usage = usage.model_dump() if hasattr(usage, "model_dump") else (dict(usage) if usage else None)
         latency = round(time.perf_counter() - t0, 2)

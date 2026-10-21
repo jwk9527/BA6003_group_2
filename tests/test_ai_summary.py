@@ -62,6 +62,28 @@ try:
 except AI.UsageCapReached:
     pass
 AI.USAGE_CAP = saved
+# --- reasoning models: fallback + finish_reason in error + reasoning param
+ns = SimpleNamespace
+r = ns(choices=[ns(finish_reason="stop", message=ns(content="", reasoning="Reasoned answer."))])
+assert AI.extract_text(r) == ("Reasoned answer.", "stop")
+class LenClient(FakeClient):
+    def __init__(self):
+        super().__init__()
+        self.chat = ns(completions=ns(create=lambda **kw: (self.calls.append(kw), ns(
+            choices=[ns(finish_reason="length", message=ns(content=None, reasoning=None))], usage=None))[1]))
+lc = LenClient()
+try:
+    AI.generate_view_summary("k", "x", None, client=lc, log_file=LOG)
+    raise AssertionError("expected ValueError")
+except ValueError as e:
+    assert "finish_reason=length" in str(e)
+assert lc.calls[0]["extra_body"] == {"reasoning": AI.REASONING} and lc.calls[0]["max_tokens"] >= 2000
+lc2 = LenClient()
+try:
+    AI.generate_view_summary("k", "x", None, client=lc2, log_file=LOG, base_url="https://api.other.example/v1")
+except ValueError:
+    pass
+assert "extra_body" not in lc2.calls[0]  # reasoning param only for OpenRouter
 print("unit OK (incl. usage cap)")
 
 # --- AppTest: History page
