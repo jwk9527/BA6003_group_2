@@ -70,9 +70,24 @@ PAGE = str(ROOT / "app_pages" / "history.py")
 at = AppTest.from_file(PAGE, default_timeout=120).run()
 at.toggle(key="hist_ai_on").set_value(True).run()
 assert not at.exception, at.exception
-assert any("No OpenRouter API key" in i.value for i in at.info)
+assert any("No API key available" in i.value for i in at.info)
 assert at.button(key="hist_ai_go").disabled
 print("no-key OK")
+
+# --- resolve_llm_config / own key skips the cap
+cfg = AI.resolve_llm_config("", "", "")
+assert cfg["source"] == "none" and cfg["count_usage"]
+cfg = AI.resolve_llm_config(" sk-user ", "", "")
+assert cfg == {"source": "user", "api_key": "sk-user", "model": AI.DEFAULT_MODEL, "base_url": AI.BASE_URL, "count_usage": False}
+assert AI.DEFAULT_MODEL == "deepseek/deepseek-v4.1-flash" and AI.BASE_URL == "https://openrouter.ai/api/v1"
+saved, n0 = AI.USAGE_CAP, AI.usage_count()
+AI.USAGE_CAP = n0
+AI.generate_view_summary("sk-user", "x", None, client=FakeClient(), log_file=LOG, count_usage=False)
+assert AI.usage_count() == n0  # own key: not counted, not capped
+AI.USAGE_CAP = saved
+assert "401" in AI.friendly_error(type("AuthenticationError", (Exception,), {})("bad"), "m")
+assert "404" in AI.friendly_error(type("NotFoundError", (Exception,), {})("x"), "m/x")
+print("own-key config OK")
 
 os.environ["OPENROUTER_API_KEY"] = "test-key"
 n_before = len(LOG.read_text().splitlines())
@@ -83,6 +98,7 @@ at.button(key="hist_ai_go").click().run()
 assert not at.exception, at.exception
 assert any(CANNED.splitlines()[0] in m.value for m in at.markdown), "summary not rendered"
 assert any("not investment advice" in c.value for c in at.caption)
+assert any("Using app default key" in c.value for c in at.caption)
 lines = LOG.read_text().splitlines()
 assert len(lines) == n_before + 1
 rec = json.loads(lines[-1])
@@ -90,4 +106,26 @@ assert rec["etf"] and "Module 2" in rec["user_prompt"] and "test-key" not in lin
 at.run()  # rerun: cached, no new call
 assert len(LOG.read_text().splitlines()) == n_before + 1
 print("mocked summary OK; prompt chars", len(rec["user_prompt"]))
+
+# --- AppTest: own key via the expander (no default key)
+os.environ["OPENROUTER_API_KEY"] = ""
+INITS = []
+class RecClient(FakeClient):
+    def __init__(self, **kw):
+        INITS.append(kw); super().__init__()
+openai.OpenAI = RecClient
+at = AppTest.from_file(PAGE, default_timeout=120).run()
+at.toggle(key="hist_ai_on").set_value(True).run()
+at.text_input(key="ai_user_key").input("sk-user-own-999").run()
+at.text_input(key="ai_user_model").input("vendor/some-model").run()
+at.text_input(key="ai_user_base").input("https://example.invalid/v1").run()
+assert any("Using your key" in c.value for c in at.caption)
+n_use = AI.usage_count()
+at.button(key="hist_ai_go").click().run()
+assert not at.exception, at.exception
+assert INITS and INITS[-1]["api_key"] == "sk-user-own-999" and INITS[-1]["base_url"] == "https://example.invalid/v1"
+assert INITS[-1]["timeout"] == 45.0
+assert AI.usage_count() == n_use and "sk-user-own-999" not in LOG.read_text()
+assert json.loads(LOG.read_text().splitlines()[-1])["model"] == "vendor/some-model"
+print("own-key AppTest OK")
 print("ALL OK")

@@ -41,6 +41,7 @@ from project_option_chain.charts import (  # noqa: E402
     volatility_smile_figure,
 )
 from project_option_chain.live_worker import LiveState, LiveWorker  # noqa: E402
+from project_option_chain.market_hours import market_status  # noqa: E402
 
 ARCHIVE_DIR = DATA_DIR / "archives"
 LIVE_DIR = DATA_DIR / "live"  # realtime snapshots (one CSV per underlying)
@@ -403,6 +404,18 @@ live = live and can_live
 # Main page
 # ---------------------------------------------------------------------------
 st.title("Option-Chain Dashboard")
+
+
+@st.fragment(run_every="30s")
+def market_status_notice() -> None:
+    """A-share session state on the Asia/Shanghai clock (weekdays only; holidays not covered)."""
+    ms = market_status()
+    text = (f"A-share market: **{ms.state}** · {ms.detail} · Shanghai time {ms.now:%a %Y-%m-%d %H:%M} "
+            "· exchange holidays not covered")
+    (st.success if ms.is_open else st.warning)(text, icon="🟢" if ms.is_open else "🌙")
+
+
+market_status_notice()
 
 if not live:
     stop_all_workers()  # live switched off -> no background fetching

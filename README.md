@@ -1,4 +1,4 @@
-# A-share ETF Option-Chain Dashboard (v5.1)
+# A-share ETF Option-Chain Dashboard (v0.5.2)
 
 [English](#english) · [简体中文](#简体中文)
 
@@ -22,17 +22,19 @@ uv run streamlit run dashboard.py
 # or: python -m venv .venv && pip install -r requirements.txt && streamlit run dashboard.py
 ```
 
-The AI summary is optional. To use it, copy `.env.example` to `.env` and set `OPENROUTER_API_KEY=...` (default model `openai/gpt-4o-mini`, usage cap 10,000 calls). `.env` is git-ignored.
+The AI summary is optional. To use it, copy `.env.example` to `.env` and set `OPENROUTER_API_KEY=...` (default model `deepseek/deepseek-v4.1-flash`, usage cap 10,000 calls). `.env` is git-ignored.
 
 **History page**
 
 1. Sidebar: choose the **ETF**. At the bottom are the VIX setting **Roll near month at <7 DTE** (off by default) and the data coverage.
-2. **Single-day view**: pick a date to see the main-contract cards. The **volatility smile** can overlay the previous 1–5 trading days. The selected day is a solid, thick line; earlier days are thinner, fainter dashed lines in the same colour. Vertical lines show each day's ETF close. Below is the **contract lifetime** chart.
+2. **Single-day view**: pick a date to see the main-contract cards. The **volatility smile** can overlay the previous 1–5 trading days; untick **Overlay previous days** to show only the single day N trading days back. The selected day is a solid, thick line; earlier days are thinner, fainter dashed lines in the same colour. Vertical lines show each day's ETF close. Below is the **contract lifetime** chart.
 3. **Date-range view**: pick a range and either the main contract only or chosen expiry months. You get price & net GEX, VIX vs HV and VRP30, plus a data preview with CSV download and the optional AI summary.
+4. **AI summary — use your own LLM API**: turn on *Summarize current view (AI)* and open **Use your own LLM API**. Enter an API key for any OpenAI-compatible endpoint, plus optional **Model** (default `deepseek/deepseek-v4.1-flash`) and **Base URL** (default `https://openrouter.ai/api/v1`). The key stays only in this browser session; it is never saved, logged or shown. Leave it empty to use the app default key from `.env` / Secrets; a caption shows "Using your key" or "Using app default key". The 10,000-call usage cap applies only to the app default key; calls time out after 45 s.
 
 **Live page**
 
 1. Enter your personal **iFinD access token** in the sidebar. It stays in this browser session and is never stored in the repo or in logs.
+1a. The page header shows whether the A-share market is open (Asia/Shanghai time: call auction, open, lunch break, closed, weekend; exchange holidays are not covered).
 2. Choose the **underlying** and review the **contract archive**: its source (built-in json, saved file, or session), `as_of` date and contract count.
 3. When contracts roll or new strikes are listed, open **Update contract codes**. Paste the current **front-month** codes (and **next-month** codes, needed for the VIX interpolation and the next-month GEX view), pick a trading day, then click **Save archive**.
 4. Pick a **refresh interval** (10 s, 30 s, 60 s, 15 / 30 / 60 min) and turn on **Live refresh**. The toggle is only enabled when a token and an archive are both available.
@@ -87,6 +89,60 @@ legacy/notebooks/            original research notebooks (reference)
 - HV: History = sample std of daily log returns × √252; Live = iFinD vendor HV. VRP30 = VIX30 − HV30.
 - Rates: Shibor O/N…1Y, linearly interpolated to days to expiry.
 
+**Formulas (as implemented in `src/project_option_chain/`)**
+
+Notation: $S$ spot (ETF close or last), $K_i$ strike, $OI_i$ open interest, $M$ contract multiplier, $\Gamma_i$ vendor gamma, $\sigma_i$ implied volatility, $\mathbb{1}_C=+1$ for calls and $-1$ for puts, $N$ calendar days to expiry.
+
+*Gamma exposure (GEX, per contract and net; `analytics.py`)*
+
+$$\mathrm{GEX}_i = \mathbb{1}_C\,\Gamma_i\,OI_i\,M\,S^2\times 0.01,\qquad \mathrm{NetGEX}=\frac{1}{10^6}\sum_i \mathrm{GEX}_i\ \text{(shown in millions)}$$
+
+*GEX curve and zero gamma.* Call and put smiles are cubic splines $\hat\sigma_C(m),\hat\sigma_P(m)$ in moneyness $m=K/S$. On a grid $s\in[\max(S-2\,\mathrm{sd}(K),K_{\min}),\ \min(S+2\,\mathrm{sd}(K),K_{\max})]$ with step $0.005$, $\tau=N/360$ and $r=$ Shibor at tenor $N$:
+
+$$\sigma_i(s)=\mathrm{clip}\big(\hat\sigma(K_i/s),\,0.01,\,5\big),\quad d_1=\frac{\ln(s/K_i)+(r+\tfrac12\sigma_i^2)\tau}{\sigma_i\sqrt\tau},\quad \Gamma_i^{BS}(s)=\frac{\varphi(d_1)}{s\,\sigma_i\sqrt\tau}$$
+
+$$G(s)=\sum_i \mathbb{1}_C\,\Gamma_i^{BS}(s)\,OI_i\,M\,s^2\times0.01,\qquad \text{ZeroGamma}=\arg\min_{s_j:\ G(s_j)G(s_{j-1})<0}|s_j-S|$$
+
+(The merged front+next view sums one such curve per expiry, each with its own $\tau$, $r$ and smile.)
+
+*Walls and max pain*
+
+$$\text{CallWall}=\arg\max_K\sum_{i\in C,K_i=K}OI_i,\qquad \text{PutWall}=\arg\max_K\sum_{i\in P,K_i=K}OI_i$$
+
+$$\text{MaxPain}=\arg\min_{K^{\ast}}\Big[\sum_{i\in C}OI_i\max(0,K^{\ast}-K_i)+\sum_{i\in P}OI_i\max(0,K_i-K^{\ast})\Big]$$
+
+*ATM IV.* $\bar\sigma(K)$ = mean of the call and put IVs ($>0$) at strike $K$; with $K_{lo}=\max\{K\le S\}$, $K_{hi}=\min\{K\ge S\}$:
+
+$$\sigma_{ATM}=w\,\bar\sigma(K_{lo})+(1-w)\,\bar\sigma(K_{hi}),\qquad w=\frac{K_{hi}-S}{K_{hi}-K_{lo}}$$
+
+(if $S$ is on a strike or outside the strike range, $\bar\sigma$ of the nearest strike is used).
+
+*25Δ skew.* With $c^{\ast}=\arg\min_{i\in C}|\Delta_i-0.25|$ and $p^{\ast}=\arg\min_{i\in P}|\Delta_i+0.25|$:
+
+$$\text{Skew}_{25\Delta}=\sigma_{c^{\ast}}-\sigma_{p^{\ast}}$$
+
+*VIX (CBOE method; `vix.py`).* For each expiry $j$: $T_j=N_j/365$, $R_j$ = Shibor at $N_j$. Option price = mid(bid, ask), else last, else settlement (History uses settlement only).
+
+$$F_j=K^{\ast}+e^{R_jT_j}\,(C(K^{\ast})-P(K^{\ast})),\quad K^{\ast}=\arg\min_K|C(K)-P(K)|,\qquad K_0=\max\{K_i\le F_j\}$$
+
+$$Q(K_i)=\begin{cases}P(K_i)&K_i<K_0\\ \tfrac12\,(C(K_0)+P(K_0))&K_i=K_0\\ C(K_i)&K_i>K_0\end{cases}\qquad \Delta K_i=\frac{K_{i+1}-K_{i-1}}{2}\ \ (\text{one-sided at the ends})$$
+
+$$\sigma_j^2=\frac{2}{T_j}\sum_i\frac{\Delta K_i}{K_i^2}\,e^{R_jT_j}\,Q(K_i)-\frac{1}{T_j}\Big(\frac{F_j}{K_0}-1\Big)^2$$
+
+30-day constant maturity (linear in total variance; extrapolation if both expiries lie on one side of 30 days):
+
+$$\mathrm{VIX}=100\sqrt{\Big[T_1\sigma_1^2\frac{N_2-N_{30}}{N_2-N_1}+T_2\sigma_2^2\frac{N_{30}-N_1}{N_2-N_1}\Big]\frac{365}{N_{30}}},\qquad N_{30}=30$$
+
+With a single usable expiry, $\mathrm{VIX}\approx100\,\sigma_1$. **No roll** (`vix30`, default, and Live): expiries 1, 2 are the two nearest. **Roll 7** (`vix30_roll7`, History toggle): if $N_1<7$ and a third expiry exists, expiries 2 and 3 are used.
+
+*Historical volatility and VRP (`history_build.py`).* With $r_t=\ln(S_t/S_{t-1})$ and window $n\in\{30,60,90\}$ trading days:
+
+$$\mathrm{HV}_n=100\sqrt{252}\;\sqrt{\frac{1}{n-1}\sum_{t}(r_t-\bar r)^2},\qquad \mathrm{VRP}_{30}=\mathrm{VIX}_{30}-\mathrm{HV}_{30}$$
+
+*Shibor tenor interpolation (`rates.py`).* Latest fixing on or before the valuation date; nodes $d\in\{1,7,14,30,90,180,270,365\}$ days (O/N…1Y), flat beyond the ends:
+
+$$r(N)=r(d_k)+\frac{N-d_k}{d_{k+1}-d_k}\big(r(d_{k+1})-r(d_k)\big),\qquad d_k\le N\le d_{k+1}$$
+
 **Deployment (Streamlit Community Cloud)**
 
 - Main file `dashboard.py`, Python 3.13, dependencies from `uv.lock` / `requirements.txt` (no akshare).
@@ -117,17 +173,19 @@ uv run streamlit run dashboard.py
 # 或：python -m venv .venv && pip install -r requirements.txt && streamlit run dashboard.py
 ```
 
-AI 总结是可选功能。如需使用，把 `.env.example` 复制为 `.env`，填写 `OPENROUTER_API_KEY=...`（默认模型 `openai/gpt-4o-mini`，调用上限 10,000 次）。`.env` 不会进入 git。
+AI 总结是可选功能。如需使用，把 `.env.example` 复制为 `.env`，填写 `OPENROUTER_API_KEY=...`（默认模型 `deepseek/deepseek-v4.1-flash`，调用上限 10,000 次）。`.env` 不会进入 git。
 
 **History 页面**
 
 1. 侧边栏：选择 **ETF**。底部是 VIX 设置 **Roll near month at <7 DTE**（默认关闭）和数据覆盖范围。
-2. **单日视图**：选择日期，查看主力合约指标卡。**波动率微笑**可叠加前 1–5 个交易日：当日为粗实线，越早的日期为越细、越淡的同色虚线；竖线表示各日的 ETF 收盘价。下方是**合约生命周期**图。
+2. **单日视图**：选择日期，查看主力合约指标卡。**波动率微笑**可叠加前 1–5 个交易日（取消勾选 **Overlay previous days** 则只显示往前第 N 个交易日）：当日为粗实线，越早的日期为越细、越淡的同色虚线；竖线表示各日的 ETF 收盘价。下方是**合约生命周期**图。
 3. **区间视图**：选择日期区间，以及“仅主力合约”或指定到期月份，查看价格与净 GEX、VIX 与 HV 和 VRP30；还有数据预览、CSV 下载和可选的 AI 总结。
+4. **AI 总结——使用自己的 LLM API**：打开 *Summarize current view (AI)*，展开 **Use your own LLM API**，填写任意 OpenAI 兼容接口的 API key，可选填 **Model**（默认 `deepseek/deepseek-v4.1-flash`）和 **Base URL**（默认 `https://openrouter.ai/api/v1`）。key 只保存在当前浏览器会话中，不会写入文件、日志或显示出来。留空则使用 `.env` / Secrets 中的应用默认 key；页面会提示 “Using your key” 或 “Using app default key”。10,000 次调用上限只对应用默认 key 生效；单次请求超时 45 秒。
 
 **Live 页面**
 
 1. 在侧边栏输入个人 **iFinD access token**。它只保留在当前浏览器会话中，不会写入仓库或日志。
+1a. 页首提示 A 股当前是否开盘（上海时间：集合竞价、交易中、午休、收盘、周末；不含交易所节假日）。
 2. 选择**标的**，查看**合约档案**：来源（内置 json、已保存文件或会话）、`as_of` 日期和合约数量。
 3. 合约换月或新增行权价时，展开 **Update contract codes**，粘贴当前**近月**代码（以及**次月**代码，VIX 插值和次月 GEX 视图需要），选择一个交易日，再点击 **Save archive**。
 4. 选择**刷新间隔**（10 秒、30 秒、60 秒、15/30/60 分钟），然后打开 **Live refresh**。只有同时具备 token 和合约档案时，开关才可用。
@@ -168,6 +226,60 @@ for t in tests/test_*.py; do uv run python "$t" || break; done
   - Live 用买卖价中间价（缺失时用最新价），且始终不换月。
 - HV：History 为日对数收益样本标准差 × √252；Live 使用 iFinD 提供的 HV。VRP30 = VIX30 − HV30。
 - 利率：Shibor 隔夜至 1 年，按剩余天数线性插值。
+
+**计算公式（与 `src/project_option_chain/` 代码一致）**
+
+记号：$S$ 标的价格，$K_i$ 行权价，$OI_i$ 持仓量，$M$ 合约乘数，$\Gamma_i$ 数据商 gamma，$\sigma_i$ 隐含波动率，$\mathbb{1}_C$ 认购取 $+1$、认沽取 $-1$，$N$ 剩余自然日。
+
+*GEX（单合约与净值）*
+
+$$\mathrm{GEX}_i = \mathbb{1}_C\,\Gamma_i\,OI_i\,M\,S^2\times 0.01,\qquad \mathrm{NetGEX}=\frac{1}{10^6}\sum_i \mathrm{GEX}_i\ \text{（单位：百万）}$$
+
+*GEX 曲线与 zero gamma*：认购、认沽分别以 $m=K/S$ 拟合三次样条 $\hat\sigma_C,\hat\sigma_P$；模拟价格网格 $s\in[\max(S-2\,\mathrm{sd}(K),K_{\min}),\ \min(S+2\,\mathrm{sd}(K),K_{\max})]$，步长 $0.005$，$\tau=N/360$，$r$ 为对应期限 Shibor：
+
+$$\sigma_i(s)=\mathrm{clip}\big(\hat\sigma(K_i/s),\,0.01,\,5\big),\quad d_1=\frac{\ln(s/K_i)+(r+\tfrac12\sigma_i^2)\tau}{\sigma_i\sqrt\tau},\quad \Gamma_i^{BS}(s)=\frac{\varphi(d_1)}{s\,\sigma_i\sqrt\tau}$$
+
+$$G(s)=\sum_i \mathbb{1}_C\,\Gamma_i^{BS}(s)\,OI_i\,M\,s^2\times0.01,\qquad \text{ZeroGamma}=\arg\min_{s_j:\ G(s_j)G(s_{j-1})<0}|s_j-S|$$
+
+（近月+次月合并视图对每个到期月各算一条曲线后相加，各自使用自己的 $\tau$、$r$ 和微笑。）
+
+*认购/认沽墙与 max pain*
+
+$$\text{CallWall}=\arg\max_K\sum_{i\in C,K_i=K}OI_i,\qquad \text{PutWall}=\arg\max_K\sum_{i\in P,K_i=K}OI_i$$
+
+$$\text{MaxPain}=\arg\min_{K^{\ast}}\Big[\sum_{i\in C}OI_i\max(0,K^{\ast}-K_i)+\sum_{i\in P}OI_i\max(0,K_i-K^{\ast})\Big]$$
+
+*ATM IV*：$\bar\sigma(K)$ 为该行权价认购与认沽 IV（$>0$）的均值；$K_{lo}=\max\{K\le S\}$，$K_{hi}=\min\{K\ge S\}$：
+
+$$\sigma_{ATM}=w\,\bar\sigma(K_{lo})+(1-w)\,\bar\sigma(K_{hi}),\qquad w=\frac{K_{hi}-S}{K_{hi}-K_{lo}}$$
+
+（现价恰在某行权价上或超出行权价范围时，取最近行权价的 $\bar\sigma$。）
+
+*25Δ skew*：$c^{\ast}=\arg\min_{i\in C}|\Delta_i-0.25|$，$p^{\ast}=\arg\min_{i\in P}|\Delta_i+0.25|$：
+
+$$\text{Skew}_{25\Delta}=\sigma_{c^{\ast}}-\sigma_{p^{\ast}}$$
+
+*VIX（CBOE 方法）*：每个到期月 $j$：$T_j=N_j/365$，$R_j$ 为 $N_j$ 期限 Shibor；期权价格取买卖中间价，否则最新价，否则结算价（History 只用结算价）。
+
+$$F_j=K^{\ast}+e^{R_jT_j}\,(C(K^{\ast})-P(K^{\ast})),\quad K^{\ast}=\arg\min_K|C(K)-P(K)|,\qquad K_0=\max\{K_i\le F_j\}$$
+
+$$Q(K_i)=\begin{cases}P(K_i)&K_i<K_0\\ \tfrac12\,(C(K_0)+P(K_0))&K_i=K_0\\ C(K_i)&K_i>K_0\end{cases}\qquad \Delta K_i=\frac{K_{i+1}-K_{i-1}}{2}\ \ (\text{两端取单侧差})$$
+
+$$\sigma_j^2=\frac{2}{T_j}\sum_i\frac{\Delta K_i}{K_i^2}\,e^{R_jT_j}\,Q(K_i)-\frac{1}{T_j}\Big(\frac{F_j}{K_0}-1\Big)^2$$
+
+30 天恒定期限（总方差线性插值；两个到期月都在 30 天同一侧时为外推）：
+
+$$\mathrm{VIX}=100\sqrt{\Big[T_1\sigma_1^2\frac{N_2-N_{30}}{N_2-N_1}+T_2\sigma_2^2\frac{N_{30}-N_1}{N_2-N_1}\Big]\frac{365}{N_{30}}},\qquad N_{30}=30$$
+
+只有一个可用到期月时 $\mathrm{VIX}\approx100\,\sigma_1$。**不换月**（`vix30`，默认，Live 亦然）：取最近两个到期月。**7 天换月**（`vix30_roll7`，History 开关）：若 $N_1<7$ 且存在第三个到期月，则改用第 2、3 个到期月。
+
+*历史波动率与 VRP*：$r_t=\ln(S_t/S_{t-1})$，窗口 $n\in\{30,60,90\}$ 个交易日：
+
+$$\mathrm{HV}_n=100\sqrt{252}\;\sqrt{\frac{1}{n-1}\sum_{t}(r_t-\bar r)^2},\qquad \mathrm{VRP}_{30}=\mathrm{VIX}_{30}-\mathrm{HV}_{30}$$
+
+*Shibor 期限插值*：取估值日当天或之前最近一次报价；节点 $d\in\{1,7,14,30,90,180,270,365\}$ 天（隔夜…1 年），两端外取端点值：
+
+$$r(N)=r(d_k)+\frac{N-d_k}{d_{k+1}-d_k}\big(r(d_{k+1})-r(d_k)\big),\qquad d_k\le N\le d_{k+1}$$
 
 **部署（Streamlit Community Cloud）**
 

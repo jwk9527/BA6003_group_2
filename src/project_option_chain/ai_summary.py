@@ -21,7 +21,7 @@ import pandas as pd
 from .config import PROJECT_ROOT
 
 BASE_URL = os.environ.get("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
-DEFAULT_MODEL = "openai/gpt-4o-mini"
+DEFAULT_MODEL = "deepseek/deepseek-v4.1-flash"
 TEMPERATURE = 0
 MAX_TOKENS = 600
 MAX_TABLE_ROWS = 60
@@ -40,6 +40,9 @@ metric definitions). Do not use other definitions.
 caused another).
 - Do not give trading advice: no buy/sell/hold, no position, hedging or strategy recommendations, no \
 price or volatility forecasts.
+- Give conservative interpretations of the supplied figures to introduce how they empirically reflect \
+the market's state and participants' behaviour. Describe these as typical empirical readings, not \
+predictions or recommendations.
 - If the supplied information is insufficient for a statement, say so explicitly.
 - Write in English, plain text, concise."""
 
@@ -233,27 +236,61 @@ def _write_log(record: dict, path: Path | None = None) -> None:
         pass
 
 
+def resolve_llm_config(user_key: str = "", user_model: str = "", user_base_url: str = "") -> dict:
+    """Which key/model/endpoint to use. A non-empty user key wins (source "user", no usage cap);
+    otherwise the app default from .env / secrets (source "default", capped); source "none" if neither."""
+    user_key = (user_key or "").strip()
+    if user_key:
+        return {"source": "user", "api_key": user_key, "model": (user_model or "").strip() or DEFAULT_MODEL,
+                "base_url": (user_base_url or "").strip() or BASE_URL, "count_usage": False}
+    key = load_api_key()
+    return {"source": "default" if key else "none", "api_key": key, "model": resolve_model(),
+            "base_url": BASE_URL, "count_usage": True}
+
+
+def friendly_error(exc: Exception, model: str) -> str:
+    """Readable message for common API failures (never includes the key)."""
+    name, status = type(exc).__name__, getattr(exc, "status_code", None)
+    if name == "AuthenticationError" or status == 401:
+        return "The API key was rejected (401). Check the key and that it belongs to this base URL."
+    if name == "PermissionDeniedError" or status == 403:
+        return "The API key is not allowed to use this model or endpoint (403)."
+    if name == "NotFoundError" or status == 404:
+        return f"Model '{model}' or the base URL was not found (404). Check the model id and base URL."
+    if name in ("APITimeoutError",):
+        return "The request timed out after 45 s. Try again or choose a faster model."
+    if name == "APIConnectionError":
+        return "Could not reach the API endpoint. Check the base URL and network access."
+    if name == "RateLimitError" or status == 429:
+        return "Rate limit or credit limit reached for this key (429)."
+    return f"{name}: {exc}"
+
+
 def generate_view_summary(api_key: str, current_view_text: str, view_df: pd.DataFrame | None,
                           definitions: str = "", *, model: str | None = None, client=None,
-                          meta: dict | None = None, log_file: Path | None = None) -> dict:
+                          meta: dict | None = None, log_file: Path | None = None,
+                          base_url: str | None = None, count_usage: bool = True) -> dict:
     """Ask the model for a summary of the supplied view. Returns
     {"text", "model", "latency_s", "usage", "time"}; raises ValueError on an empty response.
-    ``client`` may be injected (tests); otherwise an OpenAI client pointed at OpenRouter."""
+    ``client`` may be injected (tests); otherwise an OpenAI client pointed at ``base_url``
+    (default OpenRouter). ``count_usage=False`` (user's own key) skips the app usage cap.
+    The API key is never logged or returned."""
     model = model or resolve_model()
     user_prompt = build_prompt(definitions, current_view_text, view_df)
     record = {"timestamp": datetime.now(TZ).isoformat(timespec="seconds"), "model": model, **(meta or {}),
               "system_prompt": SYSTEM_PROMPT, "user_prompt": user_prompt}
-    if usage_remaining() <= 0:
+    if count_usage and usage_remaining() <= 0:
         raise UsageCapReached(f"AI usage cap reached ({USAGE_CAP:,} calls). The summary feature is disabled; "
                               "raise AI_USAGE_CAP or reset ai_usage.json to re-enable.")
     t0 = time.perf_counter()
     try:
         if client is None:
             if not api_key:
-                raise ValueError("OPENROUTER_API_KEY is not set.")
+                raise ValueError("No API key is set.")
             from openai import OpenAI
-            client = OpenAI(api_key=api_key, base_url=BASE_URL, timeout=45.0, max_retries=1)
-        _bump_usage()  # count every attempted API call
+            client = OpenAI(api_key=api_key, base_url=(base_url or BASE_URL), timeout=45.0, max_retries=1)
+        if count_usage:
+            _bump_usage()  # count every attempted API call on the app's default key
         resp = client.chat.completions.create(
             model=model, temperature=TEMPERATURE, max_tokens=MAX_TOKENS,
             messages=[{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": user_prompt}])

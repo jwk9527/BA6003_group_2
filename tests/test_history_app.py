@@ -25,6 +25,8 @@ for code, old in OLD.items():
         t = time.time()
         at.date_input(key="hist_day").set_value(d).run(); check(at, (code, d))
         at.select_slider(key="hist_prev").set_value(5).run(); n5 = check(at, (code, d, 5))
+        at.checkbox(key="hist_overlay").uncheck().run(); n5o = check(at, (code, d, 5, "no-overlay"))
+        at.checkbox(key="hist_overlay").check().run()
         at.select_slider(key="hist_prev").set_value(0).run()
         print(f"{code} {d} charts={n5} {time.time()-t:.1f}s")
     at.radio(key="hist_mode").set_value("Choose expiry months").run(); nm = check(at, (code, "multi"))

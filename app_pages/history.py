@@ -138,9 +138,15 @@ def main() -> None:
     c1.subheader("Volatility smile", help="Implied volatility by strike for the main contract on the selected date "
                                   "(contract detail; IV ≤ 0 not drawn). Left: calls, right: puts. Dashed lines: the same "
                                   "expiry month on the previous N trading days (same colour, thinner and fainter = earlier). Vertical lines: ETF close "
-                                  "of each shown day, styled like that day's curve.")
-    n_prev = c2.select_slider("Overlay previous N trading days", options=list(range(6)), value=0, key="hist_prev")
-    smile_days = month_dates[max(0, k - n_prev):k + 1]
+                                  "of each shown day, styled like that day's curve. Untick Overlay previous days to draw only the day N trading days back.")
+    n_prev = c2.select_slider("Previous N trading days", options=list(range(6)), value=0, key="hist_prev",
+                              help="How many trading days back (same expiry month) the smile reaches.")
+    overlay = c2.checkbox("Overlay previous days", value=True, key="hist_overlay",
+                          help="On: the selected day plus the previous N trading days are drawn together. "
+                               "Off: only the single day N trading days back is drawn, with that day's ETF close line.")
+    smile_days = month_dates[max(0, k - n_prev):k + 1]          # loaded (also feeds the AI summary)
+    plot_days = smile_days if overlay else [smile_days[0]]       # overlay off: only day N back
+    smile_day = plot_days[-1]
     detail = None
     if not gex_file.is_file():
         st.info("No gex.parquet detail for this ETF; smile unavailable.")
@@ -148,11 +154,15 @@ def main() -> None:
         try:
             with st.spinner("Loading detail…"):
                 detail = load_smiles(code, gex_mtime, month, tuple(smile_days))
-            if detail[detail["date"] == day].empty:
-                st.warning(f"No contract detail in gex.parquet for {day:%Y-%m-%d} / {month_label(month)}.")
+            if detail[detail["date"] == smile_day].empty:
+                st.warning(f"No contract detail in gex.parquet for {smile_day:%Y-%m-%d} / {month_label(month)}.")
             else:
-                spots = front.loc[front.index.isin(smile_days), "ETF_close"].to_dict()
-                show(smile_figure(detail, smile_days, float(row["ETF_close"]), spots), "hist_smile", 500)
+                closes = matrix.drop_duplicates("date").set_index("date")["ETF_close"]
+                spots = closes[closes.index.isin(plot_days)].to_dict()
+                spot_sel = float(spots.get(smile_day, row["ETF_close"]))
+                if not overlay and smile_day != day:
+                    st.caption(f"Overlay off: showing only {smile_day:%Y-%m-%d} ({n_prev} trading day(s) before the selected date).")
+                show(smile_figure(detail[detail["date"].isin(plot_days)], plot_days, spot_sel, spots), "hist_smile", 500)
         except Exception as exc:
             st.error(f"Could not read gex detail: {exc}")
 
@@ -235,19 +245,34 @@ def render_ai_summary(code, day, month, cards, detail, smile_days, row, life, st
     if not st.toggle("Summarize current view (AI)", key="hist_ai_on",
                      help="Sends only the aggregated figures shown on this page (cards with their definitions, "
                           "smile statistics, contract-lifetime and date-range summaries; no raw contract detail) "
-                          f"to {AI.resolve_model()} via OpenRouter, on request."):
+                          "to the configured LLM (app default via OpenRouter, or your own key), on request."):
         return
-    api_key = AI.load_api_key()
+    with st.expander("Use your own LLM API", expanded=False):
+        st.text_input("API key", type="password", key="ai_user_key", placeholder="sk-…",
+                      help="Any OpenAI-compatible API key. Kept only in this browser session (st.session_state); "
+                           "never written to a file or log. Leave empty to use the app default key.")
+        st.text_input("Model", key="ai_user_model", placeholder=AI.DEFAULT_MODEL,
+                      help=f"Model id at the chosen endpoint. Default: {AI.DEFAULT_MODEL}.")
+        st.text_input("Base URL", key="ai_user_base", placeholder=AI.BASE_URL,
+                      help=f"OpenAI-compatible endpoint. Default: {AI.BASE_URL}.")
+        st.caption("Model and base URL apply only to your own key. Your key is not counted against the app usage cap.")
+    cfg = AI.resolve_llm_config(st.session_state.get("ai_user_key", ""), st.session_state.get("ai_user_model", ""),
+                                st.session_state.get("ai_user_base", ""))
+    api_key = cfg["api_key"]
+    if cfg["source"] == "user":
+        st.caption(f"Using your key · model {cfg['model']} · {cfg['base_url']}")
+    elif cfg["source"] == "default":
+        st.caption(f"Using app default key · model {cfg['model']}")
     main_only = mode.startswith("Main")
     signature = (code, str(day.date()), len(smile_days), str(start.date()), str(end.date()),
-                 "main" if main_only else ",".join(map(str, picked)), AI.resolve_model())
+                 "main" if main_only else ",".join(map(str, picked)), cfg["model"], cfg["base_url"])
     store = st.session_state.setdefault("hist_ai_results", {})
     if not api_key:
-        st.info("No OpenRouter API key found. Add `OPENROUTER_API_KEY=...` to the `.env` file in the project "
-                "root (see `.env.example`), or to the app's Secrets on Streamlit Cloud, and restart the app.")
-    remaining = AI.usage_remaining()
+        st.info("No API key available yet. Enter your own key under **Use your own LLM API** above, or add "
+                "`OPENROUTER_API_KEY=...` to the project's `.env` (or the app's Secrets on Streamlit Cloud) and restart.")
+    remaining = AI.usage_remaining() if cfg["count_usage"] else 1
     if remaining <= 0:
-        st.warning(f"AI usage cap reached ({AI.USAGE_CAP:,} calls). The AI summary is disabled.")
+        st.warning(f"App default key usage cap reached ({AI.USAGE_CAP:,} calls). Enter your own key to continue.")
     clicked = st.button("Generate summary", key="hist_ai_go", disabled=not api_key or remaining <= 0)
     if clicked:
         smile_lines = (AI.smile_stats(detail, day, float(row["ETF_close"]), len(smile_days) - 1)
@@ -259,14 +284,16 @@ def render_ai_summary(code, day, month, cards, detail, smile_days, row, life, st
             start, end, months_desc, sub, v, main_only,
             extra_definitions=["Main contract (is_front): expiry month with the fewest days to expiry, held until expiry.",
                                "IV values in %; HV, VIX, VRP30 in vol points / %."])
-        with st.spinner(f"Asking {AI.resolve_model()}…"):
+        with st.spinner(f"Asking {cfg['model']}…"):
             try:
                 store[signature] = AI.generate_view_summary(
                     api_key, view_text, view_df, defs,
                     meta={"etf": code, "date": str(day.date()), "range": f"{start.date()}..{end.date()}",
-                          "contracts": signature[5]})
+                          "contracts": signature[5], "key_source": cfg["source"]},
+                    model=cfg["model"], base_url=cfg["base_url"], count_usage=cfg["count_usage"])
             except Exception as exc:
-                st.error(f"AI summary failed: {exc}")
+                msg = AI.friendly_error(exc, cfg["model"]).replace(api_key, "***")
+                st.error(f"AI summary failed: {msg}")
     result = store.get(signature)
     if result:
         with st.container(border=True):

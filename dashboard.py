@@ -25,4 +25,5 @@ nav = st.navigation([
     st.Page("app_pages/history.py", title="History", icon="📈", default=True, url_path="history"),
     st.Page("app_pages/live.py", title="Live", icon="📡", url_path="live"),
 ])
+st.sidebar.caption("v0.5.2")
 nav.run()

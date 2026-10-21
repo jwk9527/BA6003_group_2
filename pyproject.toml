@@ -1,6 +1,6 @@
 [project]
 name = "project-option-chain"
-version = "4.0.0"
+version = "0.5.2"
 description = "A-share ETF option-chain dashboard: live GEX / IV / VIX analytics and option history (Streamlit)"
 readme = "README.md"
 authors = [

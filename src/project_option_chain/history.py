@@ -155,7 +155,7 @@ def smile_figure(detail: pd.DataFrame, days: list[pd.Timestamp], spot: float,
             age = len(days) - 1 - i  # 0 = selected day
             sty = overlay_style(age, n_prev)
             is_sel = age == 0
-            label = f"{d:%Y-%m-%d}" + (" (selected)" if is_sel else f" (−{age}d)")
+            label = f"{d:%Y-%m-%d}" + ("" if len(days) == 1 else " (selected)" if is_sel else f" (−{age}d)")
             sub = detail[(detail["date"] == d) & (detail["option_type"] == kind) & (detail["iv"] > 0)].sort_values("strike")
             if not sub.empty:
                 fig.add_trace(go.Scatter(
