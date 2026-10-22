@@ -45,6 +45,8 @@ print("toggle enabled with token + built-in archive OK")
 
 # 3) session-only archive mode (Cloud): ARCHIVE_PERSIST=session, archive in session_state
 os.environ["ARCHIVE_PERSIST"] = "session"
+_f300 = ROOT / "data" / "archives" / "510300.SH.json"
+_before = _f300.read_bytes() if _f300.exists() else None
 at2 = AppTest.from_file(PAGE, default_timeout=60)
 at2.session_state["live_archives"] = {"510300.SH": {**BUILTIN, "spot_code": "510300.SH"}}
 at2.run()
@@ -53,7 +55,7 @@ assert not at2.exception, at2.exception
 caps = " ".join(c.value for c in at2.sidebar.caption)
 assert "session (not saved to disk)" in caps and "Session-only" in caps, caps
 assert any(b.label == "Download archive json" for b in at2.sidebar.get("download_button")), "archive download missing"
-assert not (ROOT / "data" / "archives" / "510300.SH.json").exists()
+assert (_f300.read_bytes() if _f300.exists() else None) == _before  # session mode never writes to disk
 os.environ.pop("ARCHIVE_PERSIST")
 print("session-only archive OK")
 

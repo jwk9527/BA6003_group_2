@@ -1,0 +1,681 @@
+{
+  "spot_code": "159915.SZ",
+  "as_of_date": "2026-10-22",
+  "hv30": 26.284225232394,
+  "hv60": 35.453088874093,
+  "hv90": 41.755789757702,
+  "mul": 10000.0,
+  "codes": {
+    "90007971.SZ": {
+      "name": "创业板ETF购10月3000",
+      "option_type": "C",
+      "strike": 3.0,
+      "expiry": "2026-10-28",
+      "contract_type": "看涨期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    },
+    "90007972.SZ": {
+      "name": "创业板ETF购10月3100",
+      "option_type": "C",
+      "strike": 3.1,
+      "expiry": "2026-10-28",
+      "contract_type": "看涨期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    },
+    "90007973.SZ": {
+      "name": "创业板ETF购10月3200",
+      "option_type": "C",
+      "strike": 3.2,
+      "expiry": "2026-10-28",
+      "contract_type": "看涨期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    },
+    "90007974.SZ": {
+      "name": "创业板ETF购10月3300",
+      "option_type": "C",
+      "strike": 3.3,
+      "expiry": "2026-10-28",
+      "contract_type": "看涨期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    },
+    "90007975.SZ": {
+      "name": "创业板ETF购10月3400",
+      "option_type": "C",
+      "strike": 3.4,
+      "expiry": "2026-10-28",
+      "contract_type": "看涨期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    },
+    "90007976.SZ": {
+      "name": "创业板ETF购10月3500",
+      "option_type": "C",
+      "strike": 3.5,
+      "expiry": "2026-10-28",
+      "contract_type": "看涨期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    },
+    "90007977.SZ": {
+      "name": "创业板ETF购10月3600",
+      "option_type": "C",
+      "strike": 3.6,
+      "expiry": "2026-10-28",
+      "contract_type": "看涨期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    },
+    "90007978.SZ": {
+      "name": "创业板ETF购10月3700",
+      "option_type": "C",
+      "strike": 3.7,
+      "expiry": "2026-10-28",
+      "contract_type": "看涨期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    },
+    "90007979.SZ": {
+      "name": "创业板ETF购10月3800",
+      "option_type": "C",
+      "strike": 3.8,
+      "expiry": "2026-10-28",
+      "contract_type": "看涨期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    },
+    "90007980.SZ": {
+      "name": "创业板ETF沽10月3000",
+      "option_type": "P",
+      "strike": 3.0,
+      "expiry": "2026-10-28",
+      "contract_type": "看跌期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    },
+    "90007981.SZ": {
+      "name": "创业板ETF沽10月3100",
+      "option_type": "P",
+      "strike": 3.1,
+      "expiry": "2026-10-28",
+      "contract_type": "看跌期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    },
+    "90007982.SZ": {
+      "name": "创业板ETF沽10月3200",
+      "option_type": "P",
+      "strike": 3.2,
+      "expiry": "2026-10-28",
+      "contract_type": "看跌期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    },
+    "90007983.SZ": {
+      "name": "创业板ETF沽10月3300",
+      "option_type": "P",
+      "strike": 3.3,
+      "expiry": "2026-10-28",
+      "contract_type": "看跌期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    },
+    "90007984.SZ": {
+      "name": "创业板ETF沽10月3400",
+      "option_type": "P",
+      "strike": 3.4,
+      "expiry": "2026-10-28",
+      "contract_type": "看跌期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    },
+    "90007985.SZ": {
+      "name": "创业板ETF沽10月3500",
+      "option_type": "P",
+      "strike": 3.5,
+      "expiry": "2026-10-28",
+      "contract_type": "看跌期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    },
+    "90007986.SZ": {
+      "name": "创业板ETF沽10月3600",
+      "option_type": "P",
+      "strike": 3.6,
+      "expiry": "2026-10-28",
+      "contract_type": "看跌期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    },
+    "90007987.SZ": {
+      "name": "创业板ETF沽10月3700",
+      "option_type": "P",
+      "strike": 3.7,
+      "expiry": "2026-10-28",
+      "contract_type": "看跌期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    },
+    "90007988.SZ": {
+      "name": "创业板ETF沽10月3800",
+      "option_type": "P",
+      "strike": 3.8,
+      "expiry": "2026-10-28",
+      "contract_type": "看跌期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    },
+    "90008025.SZ": {
+      "name": "创业板ETF购10月3900",
+      "option_type": "C",
+      "strike": 3.9,
+      "expiry": "2026-10-28",
+      "contract_type": "看涨期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    },
+    "90008026.SZ": {
+      "name": "创业板ETF沽10月3900",
+      "option_type": "P",
+      "strike": 3.9,
+      "expiry": "2026-10-28",
+      "contract_type": "看跌期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    },
+    "90008029.SZ": {
+      "name": "创业板ETF购10月2950",
+      "option_type": "C",
+      "strike": 2.95,
+      "expiry": "2026-10-28",
+      "contract_type": "看涨期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    },
+    "90008030.SZ": {
+      "name": "创业板ETF沽10月2950",
+      "option_type": "P",
+      "strike": 2.95,
+      "expiry": "2026-10-28",
+      "contract_type": "看跌期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    },
+    "90008135.SZ": {
+      "name": "创业板ETF购10月2900",
+      "option_type": "C",
+      "strike": 2.9,
+      "expiry": "2026-10-28",
+      "contract_type": "看涨期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    },
+    "90008136.SZ": {
+      "name": "创业板ETF沽10月2900",
+      "option_type": "P",
+      "strike": 2.9,
+      "expiry": "2026-10-28",
+      "contract_type": "看跌期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    },
+    "90008163.SZ": {
+      "name": "创业板ETF购10月2850",
+      "option_type": "C",
+      "strike": 2.85,
+      "expiry": "2026-10-28",
+      "contract_type": "看涨期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    },
+    "90008164.SZ": {
+      "name": "创业板ETF沽10月2850",
+      "option_type": "P",
+      "strike": 2.85,
+      "expiry": "2026-10-28",
+      "contract_type": "看跌期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    },
+    "90008191.SZ": {
+      "name": "创业板ETF购10月2750",
+      "option_type": "C",
+      "strike": 2.75,
+      "expiry": "2026-10-28",
+      "contract_type": "看涨期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    },
+    "90008192.SZ": {
+      "name": "创业板ETF沽10月2750",
+      "option_type": "P",
+      "strike": 2.75,
+      "expiry": "2026-10-28",
+      "contract_type": "看跌期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    },
+    "90008216.SZ": {
+      "name": "创业板ETF沽10月2700",
+      "option_type": "P",
+      "strike": 2.7,
+      "expiry": "2026-10-28",
+      "contract_type": "看跌期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    },
+    "90008215.SZ": {
+      "name": "创业板ETF购10月2700",
+      "option_type": "C",
+      "strike": 2.7,
+      "expiry": "2026-10-28",
+      "contract_type": "看涨期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    },
+    "90008231.SZ": {
+      "name": "创业板ETF购10月2600",
+      "option_type": "C",
+      "strike": 2.6,
+      "expiry": "2026-10-28",
+      "contract_type": "看涨期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    },
+    "90008232.SZ": {
+      "name": "创业板ETF购10月2650",
+      "option_type": "C",
+      "strike": 2.65,
+      "expiry": "2026-10-28",
+      "contract_type": "看涨期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    },
+    "90008233.SZ": {
+      "name": "创业板ETF沽10月2600",
+      "option_type": "P",
+      "strike": 2.6,
+      "expiry": "2026-10-28",
+      "contract_type": "看跌期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    },
+    "90008234.SZ": {
+      "name": "创业板ETF沽10月2650",
+      "option_type": "P",
+      "strike": 2.65,
+      "expiry": "2026-10-28",
+      "contract_type": "看跌期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    },
+    "90008287.SZ": {
+      "name": "创业板ETF购10月2500",
+      "option_type": "C",
+      "strike": 2.5,
+      "expiry": "2026-10-28",
+      "contract_type": "看涨期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    },
+    "90008288.SZ": {
+      "name": "创业板ETF沽10月2500",
+      "option_type": "P",
+      "strike": 2.5,
+      "expiry": "2026-10-28",
+      "contract_type": "看跌期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    }
+  },
+  "next": {
+    "expiry": "2026-11-25",
+    "codes": {
+      "90008065.SZ": {
+        "name": "创业板ETF购11月3000",
+        "option_type": "C",
+        "strike": 3.0,
+        "expiry": "2026-11-25",
+        "contract_type": "看涨期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      },
+      "90008066.SZ": {
+        "name": "创业板ETF购11月3100",
+        "option_type": "C",
+        "strike": 3.1,
+        "expiry": "2026-11-25",
+        "contract_type": "看涨期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      },
+      "90008067.SZ": {
+        "name": "创业板ETF购11月3200",
+        "option_type": "C",
+        "strike": 3.2,
+        "expiry": "2026-11-25",
+        "contract_type": "看涨期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      },
+      "90008068.SZ": {
+        "name": "创业板ETF购11月3300",
+        "option_type": "C",
+        "strike": 3.3,
+        "expiry": "2026-11-25",
+        "contract_type": "看涨期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      },
+      "90008069.SZ": {
+        "name": "创业板ETF购11月3400",
+        "option_type": "C",
+        "strike": 3.4,
+        "expiry": "2026-11-25",
+        "contract_type": "看涨期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      },
+      "90008070.SZ": {
+        "name": "创业板ETF购11月3500",
+        "option_type": "C",
+        "strike": 3.5,
+        "expiry": "2026-11-25",
+        "contract_type": "看涨期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      },
+      "90008071.SZ": {
+        "name": "创业板ETF购11月3600",
+        "option_type": "C",
+        "strike": 3.6,
+        "expiry": "2026-11-25",
+        "contract_type": "看涨期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      },
+      "90008072.SZ": {
+        "name": "创业板ETF购11月3700",
+        "option_type": "C",
+        "strike": 3.7,
+        "expiry": "2026-11-25",
+        "contract_type": "看涨期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      },
+      "90008073.SZ": {
+        "name": "创业板ETF购11月3800",
+        "option_type": "C",
+        "strike": 3.8,
+        "expiry": "2026-11-25",
+        "contract_type": "看涨期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      },
+      "90008074.SZ": {
+        "name": "创业板ETF沽11月3000",
+        "option_type": "P",
+        "strike": 3.0,
+        "expiry": "2026-11-25",
+        "contract_type": "看跌期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      },
+      "90008075.SZ": {
+        "name": "创业板ETF沽11月3100",
+        "option_type": "P",
+        "strike": 3.1,
+        "expiry": "2026-11-25",
+        "contract_type": "看跌期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      },
+      "90008076.SZ": {
+        "name": "创业板ETF沽11月3200",
+        "option_type": "P",
+        "strike": 3.2,
+        "expiry": "2026-11-25",
+        "contract_type": "看跌期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      },
+      "90008077.SZ": {
+        "name": "创业板ETF沽11月3300",
+        "option_type": "P",
+        "strike": 3.3,
+        "expiry": "2026-11-25",
+        "contract_type": "看跌期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      },
+      "90008078.SZ": {
+        "name": "创业板ETF沽11月3400",
+        "option_type": "P",
+        "strike": 3.4,
+        "expiry": "2026-11-25",
+        "contract_type": "看跌期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      },
+      "90008079.SZ": {
+        "name": "创业板ETF沽11月3500",
+        "option_type": "P",
+        "strike": 3.5,
+        "expiry": "2026-11-25",
+        "contract_type": "看跌期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      },
+      "90008080.SZ": {
+        "name": "创业板ETF沽11月3600",
+        "option_type": "P",
+        "strike": 3.6,
+        "expiry": "2026-11-25",
+        "contract_type": "看跌期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      },
+      "90008081.SZ": {
+        "name": "创业板ETF沽11月3700",
+        "option_type": "P",
+        "strike": 3.7,
+        "expiry": "2026-11-25",
+        "contract_type": "看跌期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      },
+      "90008082.SZ": {
+        "name": "创业板ETF沽11月3800",
+        "option_type": "P",
+        "strike": 3.8,
+        "expiry": "2026-11-25",
+        "contract_type": "看跌期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      },
+      "90008121.SZ": {
+        "name": "创业板ETF购11月2950",
+        "option_type": "C",
+        "strike": 2.95,
+        "expiry": "2026-11-25",
+        "contract_type": "看涨期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      },
+      "90008122.SZ": {
+        "name": "创业板ETF沽11月2950",
+        "option_type": "P",
+        "strike": 2.95,
+        "expiry": "2026-11-25",
+        "contract_type": "看跌期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      },
+      "90008138.SZ": {
+        "name": "创业板ETF沽11月2900",
+        "option_type": "P",
+        "strike": 2.9,
+        "expiry": "2026-11-25",
+        "contract_type": "看跌期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      },
+      "90008137.SZ": {
+        "name": "创业板ETF购11月2900",
+        "option_type": "C",
+        "strike": 2.9,
+        "expiry": "2026-11-25",
+        "contract_type": "看涨期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      },
+      "90008165.SZ": {
+        "name": "创业板ETF购11月2850",
+        "option_type": "C",
+        "strike": 2.85,
+        "expiry": "2026-11-25",
+        "contract_type": "看涨期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      },
+      "90008166.SZ": {
+        "name": "创业板ETF沽11月2850",
+        "option_type": "P",
+        "strike": 2.85,
+        "expiry": "2026-11-25",
+        "contract_type": "看跌期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      },
+      "90008177.SZ": {
+        "name": "创业板ETF购11月2800",
+        "option_type": "C",
+        "strike": 2.8,
+        "expiry": "2026-11-25",
+        "contract_type": "看涨期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      },
+      "90008178.SZ": {
+        "name": "创业板ETF沽11月2800",
+        "option_type": "P",
+        "strike": 2.8,
+        "expiry": "2026-11-25",
+        "contract_type": "看跌期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      },
+      "90008193.SZ": {
+        "name": "创业板ETF购11月2750",
+        "option_type": "C",
+        "strike": 2.75,
+        "expiry": "2026-11-25",
+        "contract_type": "看涨期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      },
+      "90008194.SZ": {
+        "name": "创业板ETF沽11月2750",
+        "option_type": "P",
+        "strike": 2.75,
+        "expiry": "2026-11-25",
+        "contract_type": "看跌期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      },
+      "90008217.SZ": {
+        "name": "创业板ETF购11月2700",
+        "option_type": "C",
+        "strike": 2.7,
+        "expiry": "2026-11-25",
+        "contract_type": "看涨期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      },
+      "90008218.SZ": {
+        "name": "创业板ETF沽11月2700",
+        "option_type": "P",
+        "strike": 2.7,
+        "expiry": "2026-11-25",
+        "contract_type": "看跌期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      },
+      "90008235.SZ": {
+        "name": "创业板ETF购11月2600",
+        "option_type": "C",
+        "strike": 2.6,
+        "expiry": "2026-11-25",
+        "contract_type": "看涨期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      },
+      "90008236.SZ": {
+        "name": "创业板ETF购11月2650",
+        "option_type": "C",
+        "strike": 2.65,
+        "expiry": "2026-11-25",
+        "contract_type": "看涨期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      },
+      "90008237.SZ": {
+        "name": "创业板ETF沽11月2600",
+        "option_type": "P",
+        "strike": 2.6,
+        "expiry": "2026-11-25",
+        "contract_type": "看跌期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      },
+      "90008238.SZ": {
+        "name": "创业板ETF沽11月2650",
+        "option_type": "P",
+        "strike": 2.65,
+        "expiry": "2026-11-25",
+        "contract_type": "看跌期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      },
+      "90008281.SZ": {
+        "name": "创业板ETF购11月2550",
+        "option_type": "C",
+        "strike": 2.55,
+        "expiry": "2026-11-25",
+        "contract_type": "看涨期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      },
+      "90008282.SZ": {
+        "name": "创业板ETF沽11月2550",
+        "option_type": "P",
+        "strike": 2.55,
+        "expiry": "2026-11-25",
+        "contract_type": "看跌期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      },
+      "90008289.SZ": {
+        "name": "创业板ETF购11月2500",
+        "option_type": "C",
+        "strike": 2.5,
+        "expiry": "2026-11-25",
+        "contract_type": "看涨期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      },
+      "90008290.SZ": {
+        "name": "创业板ETF沽11月2500",
+        "option_type": "P",
+        "strike": 2.5,
+        "expiry": "2026-11-25",
+        "contract_type": "看跌期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      }
+    }
+  }
+}

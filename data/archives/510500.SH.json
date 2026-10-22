@@ -1,0 +1,501 @@
+{
+  "spot_code": "510500.SH",
+  "as_of_date": "2026-10-22",
+  "hv30": 20.126152823404,
+  "hv60": 25.153615074054,
+  "hv90": 30.159501041823,
+  "mul": 10000.0,
+  "codes": {
+    "10012346.SH": {
+      "name": "500ETF购10月7000",
+      "option_type": "C",
+      "strike": 7.0,
+      "expiry": "2026-10-28",
+      "contract_type": "看涨期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    },
+    "10012347.SH": {
+      "name": "500ETF购10月7250",
+      "option_type": "C",
+      "strike": 7.25,
+      "expiry": "2026-10-28",
+      "contract_type": "看涨期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    },
+    "10012348.SH": {
+      "name": "500ETF购10月7500",
+      "option_type": "C",
+      "strike": 7.5,
+      "expiry": "2026-10-28",
+      "contract_type": "看涨期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    },
+    "10012349.SH": {
+      "name": "500ETF购10月7750",
+      "option_type": "C",
+      "strike": 7.75,
+      "expiry": "2026-10-28",
+      "contract_type": "看涨期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    },
+    "10012350.SH": {
+      "name": "500ETF购10月8000",
+      "option_type": "C",
+      "strike": 8.0,
+      "expiry": "2026-10-28",
+      "contract_type": "看涨期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    },
+    "10012351.SH": {
+      "name": "500ETF购10月8250",
+      "option_type": "C",
+      "strike": 8.25,
+      "expiry": "2026-10-28",
+      "contract_type": "看涨期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    },
+    "10012352.SH": {
+      "name": "500ETF购10月8500",
+      "option_type": "C",
+      "strike": 8.5,
+      "expiry": "2026-10-28",
+      "contract_type": "看涨期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    },
+    "10012353.SH": {
+      "name": "500ETF购10月8750",
+      "option_type": "C",
+      "strike": 8.75,
+      "expiry": "2026-10-28",
+      "contract_type": "看涨期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    },
+    "10012354.SH": {
+      "name": "500ETF沽10月6750",
+      "option_type": "P",
+      "strike": 6.75,
+      "expiry": "2026-10-28",
+      "contract_type": "看跌期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    },
+    "10012355.SH": {
+      "name": "500ETF沽10月7000",
+      "option_type": "P",
+      "strike": 7.0,
+      "expiry": "2026-10-28",
+      "contract_type": "看跌期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    },
+    "10012357.SH": {
+      "name": "500ETF沽10月7500",
+      "option_type": "P",
+      "strike": 7.5,
+      "expiry": "2026-10-28",
+      "contract_type": "看跌期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    },
+    "10012356.SH": {
+      "name": "500ETF沽10月7250",
+      "option_type": "P",
+      "strike": 7.25,
+      "expiry": "2026-10-28",
+      "contract_type": "看跌期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    },
+    "10012358.SH": {
+      "name": "500ETF沽10月7750",
+      "option_type": "P",
+      "strike": 7.75,
+      "expiry": "2026-10-28",
+      "contract_type": "看跌期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    },
+    "10012359.SH": {
+      "name": "500ETF沽10月8000",
+      "option_type": "P",
+      "strike": 8.0,
+      "expiry": "2026-10-28",
+      "contract_type": "看跌期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    },
+    "10012360.SH": {
+      "name": "500ETF沽10月8250",
+      "option_type": "P",
+      "strike": 8.25,
+      "expiry": "2026-10-28",
+      "contract_type": "看跌期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    },
+    "10012361.SH": {
+      "name": "500ETF沽10月8500",
+      "option_type": "P",
+      "strike": 8.5,
+      "expiry": "2026-10-28",
+      "contract_type": "看跌期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    },
+    "10012362.SH": {
+      "name": "500ETF沽10月8750",
+      "option_type": "P",
+      "strike": 8.75,
+      "expiry": "2026-10-28",
+      "contract_type": "看跌期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    },
+    "10012399.SH": {
+      "name": "500ETF购10月9000",
+      "option_type": "C",
+      "strike": 9.0,
+      "expiry": "2026-10-28",
+      "contract_type": "看涨期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    },
+    "10012400.SH": {
+      "name": "500ETF沽10月9000",
+      "option_type": "P",
+      "strike": 9.0,
+      "expiry": "2026-10-28",
+      "contract_type": "看跌期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    },
+    "10012417.SH": {
+      "name": "500ETF购10月6500",
+      "option_type": "C",
+      "strike": 6.5,
+      "expiry": "2026-10-28",
+      "contract_type": "看涨期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    },
+    "10012418.SH": {
+      "name": "500ETF沽10月6500",
+      "option_type": "P",
+      "strike": 6.5,
+      "expiry": "2026-10-28",
+      "contract_type": "看跌期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    },
+    "10012559.SH": {
+      "name": "500ETF购10月6250",
+      "option_type": "C",
+      "strike": 6.25,
+      "expiry": "2026-10-28",
+      "contract_type": "看涨期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    },
+    "10012560.SH": {
+      "name": "500ETF沽10月6250",
+      "option_type": "P",
+      "strike": 6.25,
+      "expiry": "2026-10-28",
+      "contract_type": "看跌期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    },
+    "10012595.SH": {
+      "name": "500ETF购10月6000",
+      "option_type": "C",
+      "strike": 6.0,
+      "expiry": "2026-10-28",
+      "contract_type": "看涨期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    },
+    "10012596.SH": {
+      "name": "500ETF沽10月6000",
+      "option_type": "P",
+      "strike": 6.0,
+      "expiry": "2026-10-28",
+      "contract_type": "看跌期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    },
+    "10012627.SH": {
+      "name": "500ETF购10月5750",
+      "option_type": "C",
+      "strike": 5.75,
+      "expiry": "2026-10-28",
+      "contract_type": "看涨期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    },
+    "10012628.SH": {
+      "name": "500ETF沽10月5750",
+      "option_type": "P",
+      "strike": 5.75,
+      "expiry": "2026-10-28",
+      "contract_type": "看跌期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    },
+    "10012345.SH": {
+      "name": "500ETF购10月6750",
+      "option_type": "C",
+      "strike": 6.75,
+      "expiry": "2026-10-28",
+      "contract_type": "看涨期权",
+      "remain_trade_days": 5,
+      "surplus_duration_days": 7
+    }
+  },
+  "next": {
+    "expiry": "2026-11-25",
+    "codes": {
+      "10012473.SH": {
+        "name": "500ETF购11月6750",
+        "option_type": "C",
+        "strike": 6.75,
+        "expiry": "2026-11-25",
+        "contract_type": "看涨期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      },
+      "10012474.SH": {
+        "name": "500ETF购11月7000",
+        "option_type": "C",
+        "strike": 7.0,
+        "expiry": "2026-11-25",
+        "contract_type": "看涨期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      },
+      "10012475.SH": {
+        "name": "500ETF购11月7250",
+        "option_type": "C",
+        "strike": 7.25,
+        "expiry": "2026-11-25",
+        "contract_type": "看涨期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      },
+      "10012476.SH": {
+        "name": "500ETF购11月7500",
+        "option_type": "C",
+        "strike": 7.5,
+        "expiry": "2026-11-25",
+        "contract_type": "看涨期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      },
+      "10012477.SH": {
+        "name": "500ETF购11月7750",
+        "option_type": "C",
+        "strike": 7.75,
+        "expiry": "2026-11-25",
+        "contract_type": "看涨期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      },
+      "10012478.SH": {
+        "name": "500ETF购11月8000",
+        "option_type": "C",
+        "strike": 8.0,
+        "expiry": "2026-11-25",
+        "contract_type": "看涨期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      },
+      "10012479.SH": {
+        "name": "500ETF购11月8250",
+        "option_type": "C",
+        "strike": 8.25,
+        "expiry": "2026-11-25",
+        "contract_type": "看涨期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      },
+      "10012480.SH": {
+        "name": "500ETF购11月8500",
+        "option_type": "C",
+        "strike": 8.5,
+        "expiry": "2026-11-25",
+        "contract_type": "看涨期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      },
+      "10012481.SH": {
+        "name": "500ETF购11月8750",
+        "option_type": "C",
+        "strike": 8.75,
+        "expiry": "2026-11-25",
+        "contract_type": "看涨期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      },
+      "10012482.SH": {
+        "name": "500ETF沽11月6750",
+        "option_type": "P",
+        "strike": 6.75,
+        "expiry": "2026-11-25",
+        "contract_type": "看跌期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      },
+      "10012483.SH": {
+        "name": "500ETF沽11月7000",
+        "option_type": "P",
+        "strike": 7.0,
+        "expiry": "2026-11-25",
+        "contract_type": "看跌期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      },
+      "10012484.SH": {
+        "name": "500ETF沽11月7250",
+        "option_type": "P",
+        "strike": 7.25,
+        "expiry": "2026-11-25",
+        "contract_type": "看跌期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      },
+      "10012485.SH": {
+        "name": "500ETF沽11月7500",
+        "option_type": "P",
+        "strike": 7.5,
+        "expiry": "2026-11-25",
+        "contract_type": "看跌期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      },
+      "10012486.SH": {
+        "name": "500ETF沽11月7750",
+        "option_type": "P",
+        "strike": 7.75,
+        "expiry": "2026-11-25",
+        "contract_type": "看跌期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      },
+      "10012487.SH": {
+        "name": "500ETF沽11月8000",
+        "option_type": "P",
+        "strike": 8.0,
+        "expiry": "2026-11-25",
+        "contract_type": "看跌期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      },
+      "10012488.SH": {
+        "name": "500ETF沽11月8250",
+        "option_type": "P",
+        "strike": 8.25,
+        "expiry": "2026-11-25",
+        "contract_type": "看跌期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      },
+      "10012489.SH": {
+        "name": "500ETF沽11月8500",
+        "option_type": "P",
+        "strike": 8.5,
+        "expiry": "2026-11-25",
+        "contract_type": "看跌期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      },
+      "10012490.SH": {
+        "name": "500ETF沽11月8750",
+        "option_type": "P",
+        "strike": 8.75,
+        "expiry": "2026-11-25",
+        "contract_type": "看跌期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      },
+      "10012549.SH": {
+        "name": "500ETF购11月6500",
+        "option_type": "C",
+        "strike": 6.5,
+        "expiry": "2026-11-25",
+        "contract_type": "看涨期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      },
+      "10012550.SH": {
+        "name": "500ETF沽11月6500",
+        "option_type": "P",
+        "strike": 6.5,
+        "expiry": "2026-11-25",
+        "contract_type": "看跌期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      },
+      "10012561.SH": {
+        "name": "500ETF购11月6250",
+        "option_type": "C",
+        "strike": 6.25,
+        "expiry": "2026-11-25",
+        "contract_type": "看涨期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      },
+      "10012562.SH": {
+        "name": "500ETF沽11月6250",
+        "option_type": "P",
+        "strike": 6.25,
+        "expiry": "2026-11-25",
+        "contract_type": "看跌期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      },
+      "10012597.SH": {
+        "name": "500ETF购11月6000",
+        "option_type": "C",
+        "strike": 6.0,
+        "expiry": "2026-11-25",
+        "contract_type": "看涨期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      },
+      "10012598.SH": {
+        "name": "500ETF沽11月6000",
+        "option_type": "P",
+        "strike": 6.0,
+        "expiry": "2026-11-25",
+        "contract_type": "看跌期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      },
+      "10012629.SH": {
+        "name": "500ETF购11月5750",
+        "option_type": "C",
+        "strike": 5.75,
+        "expiry": "2026-11-25",
+        "contract_type": "看涨期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      },
+      "10012630.SH": {
+        "name": "500ETF沽11月5750",
+        "option_type": "P",
+        "strike": 5.75,
+        "expiry": "2026-11-25",
+        "contract_type": "看跌期权",
+        "remain_trade_days": 25,
+        "surplus_duration_days": 35
+      }
+    }
+  }
+}
