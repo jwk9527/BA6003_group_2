@@ -1,87 +1,87 @@
 {
-  "built_at": "2026-10-16T17:03:58",
+  "built_at": "2026-10-22T17:35:36",
   "etfs": [
     {
       "etf": "510050",
       "first_date": "2015-02-09",
-      "last_date": "2026-09-30",
-      "trading_days": 2830
+      "last_date": "2026-10-22",
+      "trading_days": 2841
     },
     {
       "etf": "510300",
       "first_date": "2019-12-23",
-      "last_date": "2026-09-30",
-      "trading_days": 1643
+      "last_date": "2026-10-22",
+      "trading_days": 1654
     },
     {
       "etf": "510500",
       "first_date": "2022-09-19",
-      "last_date": "2026-09-30",
-      "trading_days": 978
+      "last_date": "2026-10-22",
+      "trading_days": 989
     },
     {
       "etf": "588000",
       "first_date": "2023-06-05",
-      "last_date": "2026-09-30",
-      "trading_days": 808
+      "last_date": "2026-10-22",
+      "trading_days": 819
     },
     {
       "etf": "588080",
       "first_date": "2023-06-05",
-      "last_date": "2026-09-30",
-      "trading_days": 808
+      "last_date": "2026-10-22",
+      "trading_days": 819
     }
   ],
   "files": [
     {
       "path": "510050/gex.parquet",
-      "bytes": 1631666,
-      "sha256": "52818e85e5f5c1ea5a6e7ca52c6449b7a968f9e732b1bd0d025046318ef7d01e"
+      "bytes": 1636823,
+      "sha256": "5e289bf765ac131b9e3199f649fce0a84e37ae09b3752acdbb2e373d7de7be3a"
     },
     {
       "path": "510050/matrix.parquet",
-      "bytes": 669384,
-      "sha256": "796553f0a0da06fd1893724c2486b6e12e84f75c5b91a94263b6779c45d5be10"
+      "bytes": 671786,
+      "sha256": "0df9b257d439081e00280d2f6b9bd43542ca00bd41c68d66c638d92d795494b4"
     },
     {
       "path": "510300/gex.parquet",
-      "bytes": 883920,
-      "sha256": "8e9184ade02e9e989348fa0d979006b79978337321096c913ff5684a9b1aef43"
+      "bytes": 888981,
+      "sha256": "6500c61b9748f799ebd33e950010b6976b562ec6a0d99cf1f458663d6abfa900"
     },
     {
       "path": "510300/matrix.parquet",
-      "bytes": 388611,
-      "sha256": "0511e0d0e20b028894ecf51e9c1e2102bcf27dec7d7eeede679efd1058a5ceb1"
+      "bytes": 390859,
+      "sha256": "9c2f7a2666af894dc20228c9d381bc3471e0e06462e522d223c64e5f560dd3c2"
     },
     {
       "path": "510500/gex.parquet",
-      "bytes": 504020,
-      "sha256": "abf5aa997f5e46ac8accf579221b0a3cfc08941a6f2cf604dd8a016806b2e452"
+      "bytes": 510477,
+      "sha256": "d9456235f27554b69ea8bf69d048ab0d6068549b3fba31281f60a8d1da4a3d42"
     },
     {
       "path": "510500/matrix.parquet",
-      "bytes": 250509,
-      "sha256": "81d150ffd7beee4c4913a4029a7c28a376033913b0efc8fad703e4d86063c932"
+      "bytes": 253170,
+      "sha256": "d56aba5c95c780cee2237232c2654a1a59a4b5aa53633644970098f3281cd636"
     },
     {
       "path": "588000/gex.parquet",
-      "bytes": 415794,
-      "sha256": "461b84d5450d2973ad05738988978615da4ec5ca8913726e8c2f34f97a8dff36"
+      "bytes": 424012,
+      "sha256": "08377b070cba4cff3c085eab761c836c4c15e07c8ba7a84adc7c92a6057b1651"
     },
     {
       "path": "588000/matrix.parquet",
-      "bytes": 206236,
-      "sha256": "1559385da2537e4da2f9830be8953bdaed9b8134697c1b10abbb1a88c88744f7"
+      "bytes": 208709,
+      "sha256": "fe4b4c969f159fc216f941fa250530e837c06069ff7ddc8c02d9b61c7b249f70"
     },
     {
       "path": "588080/gex.parquet",
-      "bytes": 358320,
-      "sha256": "f57ec82d5b76e73beffc32f38525c8dec1a2078704e76a73fc3ab32ff50bb384"
+      "bytes": 364244,
+      "sha256": "07a3c9594944f18374fc23bd9f443a5f122ecf6f168c9e2ece95d3d37d9869f6"
     },
     {
       "path": "588080/matrix.parquet",
-      "bytes": 202807,
-      "sha256": "f9a4d8b0814fe2748c9d4414521ddff7d77aa0cff0393072425782c17d278f70"
+      "bytes": 205288,
+      "sha256": "7222c47bc0e9b13ca2de1f047826a729218680250ee6643a7666224c5bea3af4"
     }
   ]
 }
