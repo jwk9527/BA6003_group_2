@@ -161,6 +161,21 @@ $$r(N)=r(d_k)+\frac{N-d_k}{d_{k+1}-d_k}\big(r(d_{k+1})-r(d_k)\big),\qquad d_k\le
 - The AI usage counter (`ai_usage.json`) resets when the cloud container restarts. The iFinD API may require a mainland-China network, so Live may not work on the cloud.
 - Never commit `.env`, `.streamlit/secrets.toml`, tokens or raw CSVs; they are git-ignored.
 
+### v0.5.3 update
+- **Language toggle (English / 中文)**: a switch at the top of the sidebar (below the page menu) changes the whole UI — page titles, sidebar controls, metric cards, tooltips (definitions only), chart titles and axes, messages and the Live usage guide. The default is English; the choice is kept in the browser session. The History **AI summary** follows the UI language (Simplified Chinese output in 中文 mode, same conservative rules). Strings live in `src/project_option_chain/i18n.py` (`t()` helper) and `i18n_zh.py`; data and column keys are unchanged.
+- **Developer console `input_contract_list.py`**: updates a Live contract archive from the terminal instead of the sidebar form. It asks for the underlying (`588000SH`, `588000.SH`, `588000` or `159915SZ` are all accepted), the two expiry tags (front and next month, e.g. `2611`, `2612`) and the option codes of each month (one per line or comma/space separated, finish with an empty line). It checks the code format and exchange, removes duplicates, orders the two months, optionally verifies the codes with iFinD (token read from the `IFIND_TOKEN` environment variable only, never typed or printed), shows a summary and asks before overwriting `data/archives/<spot>.json`. The old file is backed up to `data/archives/backup/` (git-ignored). New codes need the iFinD check, because contract names, strikes and expiries come from iFinD.
+
+```bash
+read -s IFIND_TOKEN && export IFIND_TOKEN     # paste the token; nothing is echoed
+.venv/bin/python input_contract_list.py
+# Underlying code: 588000SH
+# Front-month expiry tag: 2611
+# Next-month expiry tag:  2612
+# Option codes for 2611: <paste codes, then an empty line>
+# Option codes for 2612: <paste codes, then an empty line>
+# Check codes with iFinD? y  ->  summary  ->  Overwrite data/archives/588000.SH.json? y
+```
+
 ---
 
 <a id="简体中文"></a>
@@ -298,3 +313,18 @@ $$r(N)=r(d_k)+\frac{N-d_k}{d_{k+1}-d_k}\big(r(d_{k+1})-r(d_k)\big),\qquad d_k\le
 - **合约档案保存方式**：`ARCHIVE_PERSIST=file|session`。在 Streamlit Cloud 上默认是 `session`（通过 `/mount/src` 路径或 `appuser` 用户识别），其他环境默认是 `file`。session 模式下，保存的档案只存在于当前浏览器会话；可点 **Download archive json** 下载，再提交到仓库作为内置档案。
 - 云端容器重启后，AI 调用计数（`ai_usage.json`）会清零。iFinD 接口可能需要中国大陆网络，因此 Live 在云端可能无法使用。
 - 切勿提交 `.env`、`.streamlit/secrets.toml`、任何 token 或原始 CSV；这些都已加入 `.gitignore`。
+
+### v0.5.3 更新说明
+- **语言切换（English / 中文）**：侧边栏顶部（页面菜单下方）新增切换按钮，可切换整个界面：页面标题、侧边栏控件、指标卡片、tooltip（仅定义）、图表标题和坐标轴、提示信息以及 Live 使用说明。默认英文，选择保存在当前浏览器会话中。History 页的 **AI 摘要** 跟随界面语言（中文模式下输出简体中文，保守解读规则不变）。界面文字集中在 `src/project_option_chain/i18n.py`（`t()` 函数）和 `i18n_zh.py`；数据和列名不变。
+- **开发者操作台 `input_contract_list.py`**：在终端更新 Live 合约存档，代替侧边栏表单。依次输入标的代码（`588000SH`、`588000.SH`、`588000`、`159915SZ` 均可）、两个到期标志（近月和次月，如 `2611`、`2612`），以及每个月的期权代码（每行一个，或用逗号 / 空格分隔，以空行结束）。程序会校验代码格式和交易所、去重、自动排定前后月，可选用 iFinD 核对（令牌只从环境变量 `IFIND_TOKEN` 读取，不需输入也不会打印），显示摘要并确认后才覆盖 `data/archives/<spot>.json`。旧文件备份到 `data/archives/backup/`（已加入 gitignore）。新代码需要 iFinD 核对，因为合约名称、行权价和到期日来自 iFinD。
+
+```bash
+read -s IFIND_TOKEN && export IFIND_TOKEN     # 粘贴令牌，屏幕不回显
+.venv/bin/python input_contract_list.py
+# Underlying code: 588000SH
+# Front-month expiry tag: 2611
+# Next-month expiry tag:  2612
+# Option codes for 2611: <粘贴代码后输入空行>
+# Option codes for 2612: <粘贴代码后输入空行>
+# Check codes with iFinD? y  ->  摘要  ->  Overwrite data/archives/588000.SH.json? y
+```

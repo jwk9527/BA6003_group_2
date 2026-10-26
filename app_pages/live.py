@@ -42,6 +42,8 @@ from project_option_chain.charts import (  # noqa: E402
 )
 from project_option_chain.live_worker import LiveState, LiveWorker  # noqa: E402
 from project_option_chain.market_hours import market_status  # noqa: E402
+from project_option_chain.i18n import get_lang, t  # noqa: E402
+from project_option_chain.i18n_zh import GUIDE_ZH  # noqa: E402
 
 ARCHIVE_DIR = DATA_DIR / "archives"
 LIVE_DIR = DATA_DIR / "live"  # realtime snapshots (one CSV per underlying)
@@ -71,7 +73,7 @@ def pct_from_spot(level: object, spot: float) -> str | None:
     """Delta label for a price level: (level − spot) / spot."""
     if level is None or (isinstance(level, float) and pd.isna(level)) or not spot:
         return None
-    return f"{(float(level) - spot) / spot * 100:+.2f}% vs spot"
+    return t("{pct}% vs spot", pct=f"{(float(level) - spot) / spot * 100:+.2f}")
 
 
 def metric_row(cards: list[tuple[str, str, str | None, str]], per_row: int = 6) -> None:
@@ -83,51 +85,51 @@ def metric_row(cards: list[tuple[str, str, str | None, str]], per_row: int = 6) 
 
 
 def render_module_chain(analysis, key_prefix: str, next_chain: pd.DataFrame | None = None) -> None:
-    st.header("① Option chain: open interest & gamma exposure", divider="gray")
+    st.header(t("① Option chain: open interest & gamma exposure"), divider="gray")
     has_next = next_chain is not None and not next_chain.empty
     include_next = st.toggle(
-        "Include next month", key=f"{key_prefix}_include_next", disabled=not has_next,
-        help=("Merge next-month contracts into module ① only (OI/GEX by strike, aggregate GEX curve, "
-              "zero gamma, walls, max pain, net GEX). Modules ② and ③ are unaffected."
-              if has_next else
-              "No next-month data: available in Live mode when the archive has next-month codes."),
+        t("Include next month"), key=f"{key_prefix}_include_next", disabled=not has_next,
+        help=t("Merge next-month contracts into module ① only (OI/GEX by strike, aggregate GEX curve, "
+               "zero gamma, walls, max pain, net GEX). Modules ② and ③ are unaffected.")
+        if has_next else
+        t("No next-month data: available in Live mode when the archive has next-month codes."),
     )
-    scope = "front month"
+    scope = t("front month")
     if include_next and has_next:
         try:
             analysis = merge_exposure(analysis, next_chain, SHIBOR_PATH)
             exp = sorted(next_chain["expiry"].dropna().unique()) if "expiry" in next_chain else []
-            scope = "front + next month" + (f" ({exp[0]})" if exp else "")
+            scope = t("front + next month") + (f" ({exp[0]})" if exp else "")
         except Exception as exc:
-            st.error(f"Could not merge next month: {exc}")
+            st.error(t("Could not merge next month: {exc}", exc=exc))
     elif not has_next:
-        st.caption("Next-month merge unavailable: no next-month contracts in the current data "
-                   "(Live mode with next-month codes saved in the archive).")
+        st.caption(t("Next-month merge unavailable: no next-month contracts in the current data "
+                     "(Live mode with next-month codes saved in the archive)."))
     m = analysis.metrics.iloc[0]
     spot = float(m["spot"])
-    sfx = f" [Computed on: {scope}.]"
+    sfx = t(" [Computed on: {scope}.]", scope=scope)
     cards = [
-        ("Spot", fmt(m["spot"]), None,
-         "Latest price of the underlying ETF used for all calculations."),
-        ("Net GEX (M CNY)", fmt(m["net_gex_million"], ".2f"), None,
-         "Σ over contracts of gamma × OI × multiplier × spot² × 1% , calls +, puts −; "
-         "in million CNY per 1% spot move."),
-        ("Zero gamma", fmt(m["zero_gamma"]), pct_from_spot(m["zero_gamma"], spot),
-         "Price where the simulated aggregate GEX curve changes sign (nearest crossing to spot). "
-         "Curve: re-price gamma at simulated spots with the fitted IV smile, OI fixed. "
-         "— if no crossing in the simulated range."),
-        ("Call wall", fmt(m["call_wall"]), pct_from_spot(m["call_wall"], spot),
-         "Strike with the largest call open interest."),
-        ("Put wall", fmt(m["put_wall"]), pct_from_spot(m["put_wall"], spot),
-         "Strike with the largest put open interest."),
-        ("Max pain", fmt(m["max_pain"]), pct_from_spot(m["max_pain"], spot),
-         "Strike minimising total intrinsic value of all open calls and puts at expiry "
-         "(Σ OI × payoff evaluated at each strike)."),
+        (t("Spot"), fmt(m["spot"]), None,
+         t("Latest price of the underlying ETF used for all calculations.")),
+        (t("Net GEX (M CNY)"), fmt(m["net_gex_million"], ".2f"), None,
+         t("Σ over contracts of gamma × OI × multiplier × spot² × 1% , calls +, puts −; "
+           "in million CNY per 1% spot move.")),
+        (t("Zero gamma"), fmt(m["zero_gamma"]), pct_from_spot(m["zero_gamma"], spot),
+         t("Price where the simulated aggregate GEX curve changes sign (nearest crossing to spot). "
+           "Curve: re-price gamma at simulated spots with the fitted IV smile, OI fixed. "
+           "— if no crossing in the simulated range.")),
+        (t("Call wall"), fmt(m["call_wall"]), pct_from_spot(m["call_wall"], spot),
+         t("Strike with the largest call open interest.")),
+        (t("Put wall"), fmt(m["put_wall"]), pct_from_spot(m["put_wall"], spot),
+         t("Strike with the largest put open interest.")),
+        (t("Max pain"), fmt(m["max_pain"]), pct_from_spot(m["max_pain"], spot),
+         t("Strike minimising total intrinsic value of all open calls and puts at expiry "
+           "(Σ OI × payoff evaluated at each strike).")),
     ]
-    metric_row([(lbl, val, dlt, hlp if lbl == "Spot" else hlp + sfx) for lbl, val, dlt, hlp in cards])
-    st.caption(f"Expiry in {int(m['days_to_expiry'])} calendar days · risk-free (Shibor, tenor-interpolated) "
-               f"{m['risk_free_rate'] * 100:.3f}%")
-    st.subheader(f"Open interest and GEX by strike · {scope}", help=(
+    metric_row([(lbl, val, dlt, hlp if i == 0 else hlp + sfx) for i, (lbl, val, dlt, hlp) in enumerate(cards)])
+    st.caption(t("Expiry in {n} calendar days · risk-free (Shibor, tenor-interpolated) {r}%",
+                 n=int(m['days_to_expiry']), r=f"{m['risk_free_rate'] * 100:.3f}"))
+    st.subheader(t("Open interest and GEX by strike · {scope}", scope=scope), help=t(
         "Top: call and put open interest per strike, with call wall, put wall, max pain and spot markers. "
         "Bottom: bars = GEX per strike (gamma × OI × multiplier × spot² × 1%, calls +, puts −; right axis); "
         "line = aggregate GEX curve re-computed at simulated spot prices (left axis); "
@@ -140,33 +142,33 @@ def render_module_chain(analysis, key_prefix: str, next_chain: pd.DataFrame | No
 
 def render_module_iv(analysis, key_prefix: str) -> None:
     m = analysis.metrics.iloc[0]
-    st.header("② Implied volatility", divider="gray")
+    st.header(t("② Implied volatility"), divider="gray")
     atm_iv = m["atm_iv"]
     hv30 = m["hv30"]
     spread = None if atm_iv is None or hv30 is None or pd.isna(hv30) else float(atm_iv) * 100 - float(hv30)
-    hv_help = ("Historical (realised) volatility of the underlying over the last {n} trading days, "
-               "annualised, in vol points (from iFinD).")
+    hv_help = t("Historical (realised) volatility of the underlying over the last {n} trading days, "
+                "annualised, in vol points (from iFinD).")
     metric_row([
-        ("ATM IV", fmt(None if atm_iv is None else float(atm_iv) * 100, ".2f"), None,
-         "Front month, vol points. At each strike take the mean of call and put IV; then weight the two "
+        (t("ATM IV"), fmt(None if atm_iv is None else float(atm_iv) * 100, ".2f"), None,
+         t("Front month, vol points. At each strike take the mean of call and put IV; then weight the two "
          "strikes bracketing spot inversely to their distance from spot: "
          "IV = w·IV(K_lo) + (1−w)·IV(K_hi), w = (K_hi − S)/(K_hi − K_lo). "
-         "If spot is outside the strike range, the nearest strike's IV is used."),
-        ("ATM strike", fmt(m["atm_strike"]), None,
-         "Listed strike nearest to spot (reference only; ATM IV interpolates between the two bracketing strikes)."),
-        ("25Δ skew", fmt(m["call25_put25_iv_skew"] * 100, "+.2f"), None,
-         "IV(call with delta closest to +0.25) − IV(put with delta closest to −0.25), in vol points."),
-        ("25Δ IV ratio", fmt(m["call25_put25_iv_ratio"], ".3f"), None,
-         "IV(25-delta call) ÷ IV(25-delta put)."),
-        ("25Δ strike gap", fmt(m["put25_minus_call25_strike"], "+.3f"), None,
-         "Strike of the 25-delta put − strike of the 25-delta call."),
-        ("ATM IV − HV30", fmt(spread, "+.2f"), None,
-         "ATM IV (vol points) minus 30-day historical volatility (vol points)."),
+         "If spot is outside the strike range, the nearest strike's IV is used.")),
+        (t("ATM strike"), fmt(m["atm_strike"]), None,
+         t("Listed strike nearest to spot (reference only; ATM IV interpolates between the two bracketing strikes).")),
+        (t("25Δ skew"), fmt(m["call25_put25_iv_skew"] * 100, "+.2f"), None,
+         t("IV(call with delta closest to +0.25) − IV(put with delta closest to −0.25), in vol points.")),
+        (t("25Δ IV ratio"), fmt(m["call25_put25_iv_ratio"], ".3f"), None,
+         t("IV(25-delta call) ÷ IV(25-delta put).")),
+        (t("25Δ strike gap"), fmt(m["put25_minus_call25_strike"], "+.3f"), None,
+         t("Strike of the 25-delta put − strike of the 25-delta call.")),
+        (t("ATM IV − HV30"), fmt(spread, "+.2f"), None,
+         t("ATM IV (vol points) minus 30-day historical volatility (vol points).")),
         ("HV30", fmt(m["hv30"], ".2f"), None, hv_help.format(n=30)),
         ("HV60", fmt(m["hv60"], ".2f"), None, hv_help.format(n=60)),
         ("HV90", fmt(m["hv90"], ".2f"), None, hv_help.format(n=90)),
     ])
-    st.subheader("Volatility smile", help=(
+    st.subheader(t("Volatility smile"), help=t(
         "Market implied volatility of each listed call (left) and put (right) against strike. "
         "Dashed lines: CubicSpline fitted separately to calls and puts in moneyness K/S "
         "(the same fit used to build the aggregate GEX curve). Dotted line: spot (ATM)."))
@@ -184,48 +186,52 @@ VRP_HELP = ("VRP30 = VIX (30-day, this module) − HV30 (iFinD 30-day historical
 
 
 def render_module_vix(vix, key_prefix: str, hv30=None) -> None:
-    st.header("③ 30-day volatility index (VIX method)", divider="gray")
+    st.header(t("③ 30-day volatility index (VIX method)"), divider="gray")
     if vix is None or vix.near is None:
-        st.info(f"VIX unavailable: {vix.note if vix else 'no data'}")
+        st.info(t("VIX unavailable: {note}", note=vix.note if vix else t("no data")))
         return
+    vix_help = t(VIX_HELP)
+
     def ev_cards(ev, tag):
+        tg = t(tag)
         if ev is None:
-            return [(f"{tag} expiry", "—", None, "No contracts for this month in the archive."),
-                    (f"{tag} σ", "—", None, VIX_HELP)]
+            return [(t("{tag} expiry", tag=tg), "—", None, t("No contracts for this month in the archive.")),
+                    (t("{tag} σ", tag=tg), "—", None, vix_help)]
         return [
-            (f"{tag} expiry", ev.expiry, f"{ev.days} days", f"{tag}-month expiry date and calendar days to expiry."),
-            (f"{tag} σ", f"{ev.sigma * 100:.2f}", f"σ² = {ev.variance:.4f}",
-             f"√σ² × 100 for the {tag.lower()}-month expiry. " + VIX_HELP),
-            (f"{tag} forward", f"{ev.forward:.4f}", f"K0 {ev.k0:.3f}",
-             "F = K* + e^{RT}(C − P) at the strike K* with the smallest |C − P|; K0 = largest strike ≤ F."),
+            (t("{tag} expiry", tag=tg), ev.expiry, t("{n} days", n=ev.days),
+             t("{tag}-month expiry date and calendar days to expiry.", tag=tg)),
+            (t("{tag} σ", tag=tg), f"{ev.sigma * 100:.2f}", f"σ² = {ev.variance:.4f}",
+             t("√σ² × 100 for the {tag}-month expiry. ", tag=tg.lower()) + vix_help),
+            (t("{tag} forward", tag=tg), f"{ev.forward:.4f}", f"K0 {ev.k0:.3f}",
+             t("F = K* + e^(RT)(C − P) at the strike K* with the smallest |C − P|; K0 = largest strike ≤ F.")),
         ]
-    label = {"interpolated": "VIX (30d, interpolated)", "extrapolated": "VIX (30d, extrapolated)",
-             "single-month": "VIX (1-month approx.)"}.get(vix.method, "VIX")
+    label = {"interpolated": t("VIX (30d, interpolated)"), "extrapolated": t("VIX (30d, extrapolated)"),
+             "single-month": t("VIX (1-month approx.)")}.get(vix.method, "VIX")
     metric_row(ev_cards(vix.near, "Near") + ev_cards(vix.next, "Next") + [
         (label, fmt(vix.vix, ".2f"), None,
-         "100 × √{[T1σ1²·(N2−30)/(N2−N1) + T2σ2²·(30−N1)/(N2−N1)] × 365/30}, N = calendar days. "
+         t("100 × √{[T1σ1²·(N2−30)/(N2−N1) + T2σ2²·(30−N1)/(N2−N1)] × 365/30}, N = calendar days. "
          "With only one expiry: 100 × σ_near (no term interpolation). Near and next month are always the "
-         "two nearest archived expiries (no roll)."),
+         "two nearest archived expiries (no roll).")),
         ("VRP30", fmt(None if vix.vix is None or hv30 is None or pd.isna(hv30) else float(vix.vix) - float(hv30), "+.2f"),
-         None, VRP_HELP),
-        ("HV30", fmt(hv30, ".2f"), None, "Historical (realised) volatility of the underlying over the last 30 "
-         "trading days, annualised, in vol points (from iFinD)."),
+         None, t(VRP_HELP)),
+        ("HV30", fmt(hv30, ".2f"), None, t("Historical (realised) volatility of the underlying over the last {n} "
+                                           "trading days, annualised, in vol points (from iFinD).", n=30)),
     ], per_row=3)
     if vix.method != "interpolated":
-        st.warning(vix.note)
+        st.warning(t(vix.note))
     else:
-        st.caption(vix.note)
+        st.caption(t(vix.note))
 
 
 def render_analysis(analysis, source_label: str, key_prefix: str, vix=None,
                     next_chain: pd.DataFrame | None = None) -> None:
     """Three modules top to bottom: ① chain / GEX, ② IV, ③ VIX."""
     row = analysis.metrics.iloc[0]
-    st.caption(f"Data as of {row['date']} · source: {source_label}")
+    st.caption(t("Data as of {d} · source: {src}", d=row['date'], src=source_label))
     render_module_chain(analysis, key_prefix, next_chain)
     render_module_iv(analysis, key_prefix)
     render_module_vix(vix, key_prefix, row["hv30"])
-    with st.expander("Metrics & strike details"):
+    with st.expander(t("Metrics & strike details")):
         st.dataframe(analysis.metrics)
         st.dataframe(analysis.strike_gex)
         st.dataframe(analysis.gex_curve)
@@ -240,10 +246,11 @@ BADGE = {
 
 def source_badge(state: LiveState) -> None:
     bg, fg, text = BADGE.get(state.source, BADGE["WAITING"])
+    text = t(text)
     age = ""
     if state.data_time is not None:
         secs = (pd.Timestamp.now() - state.data_time).total_seconds()
-        age = f" · data {state.data_time:%H:%M:%S} ({secs:.0f}s ago)"
+        age = t(" · data {time} ({secs}s ago)", time=f"{state.data_time:%H:%M:%S}", secs=f"{secs:.0f}")
     st.markdown(
         f"<div style='background:{bg};color:{fg};padding:8px 14px;border-radius:6px;"
         f"font-weight:600;font-size:1.05rem;border:1px solid {fg}55'>{text}"
@@ -251,7 +258,7 @@ def source_badge(state: LiveState) -> None:
         unsafe_allow_html=True,
     )
     if state.last_error:
-        st.error(f"Last fetch failed at {state.last_attempt:%H:%M:%S}: {state.last_error}")
+        st.error(t("Last fetch failed at {time}: {err}", time=f"{state.last_attempt:%H:%M:%S}", err=state.last_error))
 
 
 @st.cache_resource(max_entries=4)
@@ -285,32 +292,32 @@ def current_archive(spot: str) -> tuple[dict | None, str]:
     """(archive, source): session archive first, then data/archives/<spot>.json."""
     sess = st.session_state.setdefault("live_archives", {})
     if spot in sess:
-        return sess[spot], "session (not saved to disk)"
+        return sess[spot], t("session (not saved to disk)")
     path = ARCHIVE_DIR / f"{spot}.json"
     if path.is_file():
         try:
-            return load_archive(path), f"file `data/archives/{path.name}`"
+            return load_archive(path), t("file `data/archives/{name}`", name=path.name)
         except Exception as exc:  # noqa: BLE001
-            st.sidebar.error(f"Saved archive could not be read: {exc}")
+            st.sidebar.error(t("Saved archive could not be read: {exc}", exc=exc))
     return None, ""
 
 
 def session_log_section(log: dict, key: str) -> None:
     """Session log table + downloads (data lives only in this browser session)."""
-    st.header("Session log", divider="gray")
-    st.caption("One row per successful refresh while Live is on. Kept only in this browser session "
-               "(memory, not saved on the server); cleared when the page is reloaded or the tab is closed. "
-               f"Full-chain snapshots: last {SL.MAX_SNAPSHOTS} kept"
-               + (f" ({log['dropped_snapshots']} older snapshots dropped)." if log["dropped_snapshots"] else "."))
+    st.header(t("Session log"), divider="gray")
+    st.caption(t("One row per successful refresh while Live is on. Kept only in this browser session "
+                 "(memory, not saved on the server); cleared when the page is reloaded or the tab is closed. "
+                 "Full-chain snapshots: last {n} kept", n=SL.MAX_SNAPSHOTS)
+               + (t(" ({n} older snapshots dropped).", n=log['dropped_snapshots']) if log["dropped_snapshots"] else "."))
     if not log["rows"]:
-        st.info("No refreshes logged yet.")
+        st.info(t("No refreshes logged yet."))
         return
     st.dataframe(SL.summary_frame(log).iloc[::-1], hide_index=True, height=260)
     stamp = pd.Timestamp.now().strftime("%Y%m%d_%H%M%S")
     c1, c2, _ = st.columns([1, 1, 2])
-    c1.download_button("Download summary CSV", SL.summary_csv(log), file_name=f"live_summary_{stamp}.csv",
+    c1.download_button(t("Download summary CSV"), SL.summary_csv(log), file_name=f"live_summary_{stamp}.csv",
                        mime="text/csv", key=f"{key}_dl_csv")
-    c2.download_button(f"Download snapshots ZIP ({len(log['snapshots'])} chains + summary)", SL.snapshots_zip(log),
+    c2.download_button(t("Download snapshots ZIP ({n} chains + summary)", n=len(log['snapshots'])), SL.snapshots_zip(log),
                        file_name=f"live_snapshots_{stamp}.zip", mime="application/zip", key=f"{key}_dl_zip")
 
 
@@ -337,39 +344,40 @@ the last good snapshot (if any) is kept, marked **STALE**. Historical analytics 
 persist = archive_persist_mode()
 log = st.session_state.setdefault("live_log", SL.new_log())
 
-st.sidebar.header("Live settings")
+st.sidebar.header(t("Live settings"))
 token = st.sidebar.text_input(
-    "iFinD access token",
+    t("iFinD access token"),
     type="password",
-    help="Entered here only; never stored in the repo or written to logs.",
+    help=t("Entered here only; never stored in the repo or written to logs."),
 ).strip()
-spot_code = st.sidebar.selectbox("Underlying ETF", known_archives())
+spot_code = st.sidebar.selectbox(t("Underlying ETF"), known_archives())
 
 st.sidebar.divider()
-st.sidebar.subheader("Contract archive")
+st.sidebar.subheader(t("Contract archive"))
 archive, archive_src = current_archive(spot_code)
 if archive:
     n_next = len((archive.get("next") or {}).get("codes", {}))
-    st.sidebar.caption(f"Source: {archive_src}  \nAs of {archive.get('as_of_date', '—')} · front "
-                       f"{len(archive.get('codes', {}))} contracts"
-                       + (f" · next {archive['next'].get('expiry', '')} ({n_next})" if n_next else " · no next month"))
+    st.sidebar.caption(t("Source: {src}  \nAs of {d} · front {n} contracts", src=archive_src,
+                         d=archive.get('as_of_date', '—'), n=len(archive.get('codes', {})))
+                       + (t(" · next {exp} ({n})", exp=archive['next'].get('expiry', ''), n=n_next) if n_next
+                          else t(" · no next month")))
 else:
-    st.sidebar.warning("No archive for this underlying yet — add contract codes below.")
+    st.sidebar.warning(t("No archive for this underlying yet — add contract codes below."))
 
-with st.sidebar.expander("Update contract codes", expanded=archive is None):
-    codes_text = st.text_area("Front-month contract codes", key="arch_front",
-                              help="iFinD codes of the main (front-month) expiry, comma or newline separated.")
-    next_codes_text = st.text_area("Next-month codes (optional, for VIX)", key="arch_next",
-                                   help="Codes of the next expiry; used by the 30-day VIX and the next-month GEX merge.")
-    query_date = st.date_input("Archive query date", value=date.today(), key="arch_date",
-                               help="date_sequence only returns name/expiry data on trading days; on weekends or "
-                                    "holidays pick the last trading day.")
-    st.caption("Saving writes `data/archives/<spot>.json`." if persist == "file" else
-               "Session-only: the archive is kept in this browser session (not written on the server). "
-               "Use **Download archive json** to keep a copy.")
-    if st.button("Save archive", key="arch_save", disabled=not (token and codes_text.strip()),
-                 help=None if token else "Requires the iFinD token."):
-        with st.spinner("Building archive via the daily endpoint..."):
+with st.sidebar.expander(t("Update contract codes"), expanded=archive is None):
+    codes_text = st.text_area(t("Front-month contract codes"), key="arch_front",
+                              help=t("iFinD codes of the main (front-month) expiry, comma or newline separated."))
+    next_codes_text = st.text_area(t("Next-month codes (optional, for VIX)"), key="arch_next",
+                                   help=t("Codes of the next expiry; used by the 30-day VIX and the next-month GEX merge."))
+    query_date = st.date_input(t("Archive query date"), value=date.today(), key="arch_date",
+                               help=t("date_sequence only returns name/expiry data on trading days; on weekends or "
+                                      "holidays pick the last trading day."))
+    st.caption(t("Saving writes `data/archives/<spot>.json`.") if persist == "file" else
+               t("Session-only: the archive is kept in this browser session (not written on the server). "
+                 "Use **Download archive json** to keep a copy."))
+    if st.button(t("Save archive"), key="arch_save", disabled=not (token and codes_text.strip()),
+                 help=None if token else t("Requires the iFinD token.")):
+        with st.spinner(t("Building archive via the daily endpoint...")):
             try:
                 new = build_archive_with_next(
                     token, spot_code, parse_codes(codes_text),
@@ -380,38 +388,38 @@ with st.sidebar.expander("Update contract codes", expanded=archive is None):
                 else:
                     st.session_state["live_archives"][spot_code] = new
                 miss = new.get("missing", [])
-                st.success(f"Archive saved ({persist}): {len(new['codes'])} contracts"
-                           + (f", {len(miss)} codes skipped" if miss else ""))
+                st.success(t("Archive saved ({mode}): {n} contracts", mode=persist, n=len(new['codes']))
+                           + (t(", {n} codes skipped", n=len(miss)) if miss else ""))
                 archive, archive_src = current_archive(spot_code)
             except Exception as exc:  # noqa: BLE001
-                st.error(f"Archive failed: {exc}")
+                st.error(t("Archive failed: {exc}", exc=exc))
     if archive:
-        st.download_button("Download archive json", json.dumps(archive, ensure_ascii=False, indent=2).encode("utf-8"),
+        st.download_button(t("Download archive json"), json.dumps(archive, ensure_ascii=False, indent=2).encode("utf-8"),
                            file_name=f"{spot_code}.json", mime="application/json", key="arch_dl")
 
 st.sidebar.divider()
-st.sidebar.subheader("Refresh")
+st.sidebar.subheader(t("Refresh"))
 interval = st.sidebar.selectbox(
-    "Refresh interval", list(INTERVAL_SECONDS), index=1, key="live_interval",
-    help="How often the background worker fetches a new chain (10 s – 60 min). Refreshing stops when Live is "
-         "turned off or when the browser tab is closed.")
+    t("Refresh interval"), list(INTERVAL_SECONDS), index=1, key="live_interval",
+    help=t("How often the background worker fetches a new chain (10 s – 60 min). Refreshing stops when Live is "
+           "turned off or when the browser tab is closed."))
 can_live = bool(token) and archive is not None
-live = st.sidebar.toggle("Live refresh", value=False, disabled=not can_live, key="live_on",
-                         help=None if can_live else "Requires an iFinD token and a contract archive.")
+live = st.sidebar.toggle(t("Live refresh"), value=False, disabled=not can_live, key="live_on",
+                         help=None if can_live else t("Requires an iFinD token and a contract archive."))
 live = live and can_live
 
 # ---------------------------------------------------------------------------
 # Main page
 # ---------------------------------------------------------------------------
-st.title("Option-Chain Dashboard")
+st.title(t("Option-Chain Dashboard"))
 
 
 @st.fragment(run_every="30s")
 def market_status_notice() -> None:
     """A-share session state on the Asia/Shanghai clock (weekdays only; holidays not covered)."""
     ms = market_status()
-    text = (f"A-share market: **{ms.state}** · {ms.detail} · Shanghai time {ms.now:%a %Y-%m-%d %H:%M} "
-            "· exchange holidays not covered")
+    text = t("A-share market: **{state}** · {detail} · Shanghai time {now} · exchange holidays not covered",
+             state=t(ms.state), detail=t(ms.detail), now=f"{ms.now:%a %Y-%m-%d %H:%M}")
     (st.success if ms.is_open else st.warning)(text, icon="🟢" if ms.is_open else "🌙")
 
 
@@ -420,12 +428,12 @@ market_status_notice()
 if not live:
     stop_all_workers()  # live switched off -> no background fetching
     if not token:
-        st.info("No live data: enter an iFinD access token in the sidebar to start.")
+        st.info(t("No live data: enter an iFinD access token in the sidebar to start."))
     elif archive is None:
-        st.info("Add contract codes under **Update contract codes** in the sidebar, then turn on **Live refresh**.")
+        st.info(t("Add contract codes under **Update contract codes** in the sidebar, then turn on **Live refresh**."))
     else:
-        st.info("Ready. Turn on **Live refresh** in the sidebar to start.")
-    st.markdown(GUIDE)
+        st.info(t("Ready. Turn on **Live refresh** in the sidebar to start."))
+    st.markdown(GUIDE_ZH if get_lang() == "zh" else GUIDE)
     if log["rows"]:
         session_log_section(log, "stopped")
 else:
@@ -437,13 +445,13 @@ else:
             get_worker.clear()
             worker = get_worker(spot_code, token_hash, INTERVAL_SECONDS[interval], archive_key, token, archive)
     except Exception as exc:  # noqa: BLE001
-        st.error(f"Could not start the live worker: {exc}")
+        st.error(t("Could not start the live worker: {exc}", exc=exc))
         st.stop()
 
-    with st.expander("Data pipeline status", expanded=False):
+    with st.expander(t("Data pipeline status"), expanded=False):
         dsc, rqc = st.columns(2)
         with dsc:
-            st.markdown("**DS · archive**")
+            st.markdown(t("**DS · archive**"))
             missing = archive.get("missing", [])
             st.write(
                 f"spot `{archive['spot_code']}` · as_of {archive.get('as_of_date', '—')}"
@@ -453,9 +461,9 @@ else:
                   f"hv60 {archive['hv60']} · hv90 {archive['hv90']}"
             )
         with rqc:
-            st.markdown("**RQ · background worker**")
-            st.write(f"iFinD realtime · every {interval}")
-            if st.button("Fetch now"):
+            st.markdown(t("**RQ · background worker**"))
+            st.write(t("iFinD realtime · every {interval}", interval=interval))
+            if st.button(t("Fetch now")):
                 worker.refresh_now()
 
     @st.fragment(run_every=UI_POLL)
@@ -464,20 +472,20 @@ else:
         SL.append(log, state)      # page-side handoff into session_state (thread-safe)
         source_badge(state)
         if state.fetch_seconds is not None:
-            st.caption(f"Snapshots this session: {state.n_snapshots} · last fetch+calc "
-                       f"{state.fetch_seconds:.2f}s · UI polls every {UI_POLL}")
+            st.caption(t("Snapshots this session: {n} · last fetch+calc {s}s · UI polls every {poll}",
+                         n=state.n_snapshots, s=f"{state.fetch_seconds:.2f}", poll=UI_POLL))
         if state.analysis is None:
             if state.last_error:
-                st.warning("No live data yet. Check the token, the contract codes (archive) and network access "
-                           "to the iFinD API; the worker keeps retrying on the refresh interval.")
+                st.warning(t("No live data yet. Check the token, the contract codes (archive) and network access "
+                             "to the iFinD API; the worker keeps retrying on the refresh interval."))
             else:
-                st.info("Waiting for the background worker's first snapshot…")
+                st.info(t("Waiting for the background worker's first snapshot…"))
         else:
             try:
-                st.subheader("Intraday")
+                st.subheader(t("Intraday"))
                 st.plotly_chart(intraday_figure(state.history), width="stretch",
                                 key="live_intraday", config=PLOTLY_CONFIG)
-                label = {"LIVE": f"realtime {spot_code}", "STALE": f"STALE realtime {spot_code}"}.get(
+                label = {"LIVE": t("realtime {code}", code=spot_code), "STALE": t("STALE realtime {code}", code=spot_code)}.get(
                     state.source, state.source)
                 render_analysis(state.analysis, f"{label} @ {state.data_time:%H:%M:%S}", "live", state.vix,
                                 next_chain=(state.full_chain[state.full_chain["month"] == "next"]
@@ -485,10 +493,10 @@ else:
                 chain_df = state.chain
                 display_cols = ["thscode", "name", "option_type", "strike", "expiry",
                                 "oi", "iv", "delta", "gamma"]
-                with st.expander("Realtime option chain (RQ)"):
+                with st.expander(t("Realtime option chain (RQ)")):
                     st.dataframe(chain_df[display_cols] if set(display_cols).issubset(chain_df.columns) else chain_df)
             except Exception as exc:  # noqa: BLE001 - never crash the page on a bad snapshot
-                st.error(f"Could not render the live snapshot: {type(exc).__name__}: {exc}")
+                st.error(t("Could not render the live snapshot: {exc}", exc=f"{type(exc).__name__}: {exc}"))
         session_log_section(log, "live")
 
     live_view()

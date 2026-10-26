@@ -17,6 +17,7 @@ if str(ROOT / "src") not in sys.path:
 from project_option_chain import ai_summary as AI  # noqa: E402
 from project_option_chain import history as H  # noqa: E402
 from project_option_chain.charts import show_figure  # noqa: E402
+from project_option_chain.i18n import get_lang, t  # noqa: E402
 from project_option_chain.history import (  # noqa: E402
     DATA_ROOT, HELP, NAMES, ROLL_LABEL, available_etfs, fmt, gex_path, lifetime_figure, month_label,
     price_gex_figure, smile_figure, vix_30d, vol_figure,
@@ -36,6 +37,11 @@ def load_vix(code: str, mtime: float, roll: bool) -> pd.DataFrame:
 @st.cache_data(show_spinner=False, max_entries=64)
 def load_smiles(code: str, mtime: float, month: int, dates: tuple) -> pd.DataFrame:
     return H.load_smiles(code, mtime, month, dates)
+
+
+def h(key: str) -> str:
+    """Metric definition (tooltip) in the current UI language."""
+    return H.help_text(key, get_lang())
 
 
 def show(fig, key: str, height: int, dates: bool = False) -> None:
@@ -69,20 +75,20 @@ def card_grid(cards) -> None:
 
 def main() -> None:
     st.markdown(CSS, unsafe_allow_html=True)
-    st.title("ETF Option History: GEX & Volatility")
+    st.title(t("ETF Option History: GEX & Volatility"))
     etfs = available_etfs()
     if not etfs:
-        st.error(f"No history data found under {DATA_ROOT}/<ETF>/matrix.parquet — build it with "
-                 "scripts/build_history.py (see README) or set ETF_HIST_DATA.")
+        st.error(t("No history data found under {root}/<ETF>/matrix.parquet — build it with "
+                   "scripts/build_history.py (see README) or set ETF_HIST_DATA.", root=DATA_ROOT))
         st.stop()
-    st.sidebar.header("History")
-    st.sidebar.subheader("Underlying")
-    code = st.sidebar.selectbox("ETF", etfs, format_func=lambda c: f"{c} · {NAMES.get(c, c)}", key="hist_etf")
+    st.sidebar.header(t("History"))
+    st.sidebar.subheader(t("Underlying"))
+    code = st.sidebar.selectbox("ETF", etfs, format_func=lambda c: f"{c} · {t(NAMES.get(c, c))}", key="hist_etf")
     path = DATA_ROOT / code / "matrix.parquet"
     try:
         matrix = load_matrix(code, path.stat().st_mtime)
     except Exception as exc:
-        st.error(f"Could not read matrix for {code}: {exc}")
+        st.error(t("Could not read matrix for {code}: {exc}", code=code, exc=exc))
         st.stop()
     gex_file = gex_path(code)
     gex_mtime = gex_file.stat().st_mtime if gex_file.is_file() else 0.0
@@ -90,42 +96,43 @@ def main() -> None:
     dates = list(front.index)
     # bottom of the sidebar: VIX setting + data coverage
     st.sidebar.divider()
-    st.sidebar.subheader("VIX settings")
-    roll = st.sidebar.toggle(ROLL_LABEL, value=False, key="hist_vix_roll",
-                             help="VIX (30-day) normally uses the two nearest expiries. When on, a near expiry with "
-                                  "fewer than 7 calendar days left is skipped and the next two expiries are used. "
-                                  "Affects the VIX card, VRP30 and the VIX chart.")
+    st.sidebar.subheader(t("VIX settings"))
+    roll = st.sidebar.toggle(t(ROLL_LABEL), value=False, key="hist_vix_roll",
+                             help=t("VIX (30-day) normally uses the two nearest expiries. When on, a near expiry with "
+                                    "fewer than 7 calendar days left is skipped and the next two expiries are used. "
+                                    "Affects the VIX card, VRP30 and the VIX chart."))
     st.sidebar.divider()
-    st.sidebar.caption(f"Data {dates[0]:%Y-%m-%d} — {dates[-1]:%Y-%m-%d} · {len(dates)} trading days")
+    st.sidebar.caption(t("Data {a} — {b} · {n} trading days", a=f"{dates[0]:%Y-%m-%d}", b=f"{dates[-1]:%Y-%m-%d}",
+                         n=len(dates)))
     vix = load_vix(code, path.stat().st_mtime, roll)
-    vix_help = HELP["vix"] + (HELP["vix_roll"] if roll else "")
+    vix_help = h("vix") + (h("vix_roll") if roll else "")
 
     # ================= Module 1: single day =================
-    st.header("① Single-day view", divider="gray")
-    sel = pd.Timestamp(st.date_input("Date", value=dates[-1], min_value=dates[0], max_value=dates[-1],
-                                     key="hist_day", help="Data exists for trading days only; a non-trading day falls back to the previous trading day."))
+    st.header(t("① Single-day view"), divider="gray")
+    sel = pd.Timestamp(st.date_input(t("Date"), value=dates[-1], min_value=dates[0], max_value=dates[-1],
+                                     key="hist_day", help=t("Data exists for trading days only; a non-trading day falls back to the previous trading day.")))
     pos = int(np.searchsorted(np.array(dates, dtype="datetime64[ns]"), np.datetime64(sel), side="right")) - 1
     day = dates[max(pos, 0)]
     if day != sel:
-        st.caption(f"{sel:%Y-%m-%d} is not a trading day; showing {day:%Y-%m-%d}.")
+        st.caption(t("{a} is not a trading day; showing {b}.", a=f"{sel:%Y-%m-%d}", b=f"{day:%Y-%m-%d}"))
     row = front.loc[day]
     month = int(row["month"])
     vrow = vix.set_index("date").loc[day]
-    st.subheader(f"Main contract (is_front) {month_label(month)} · {day:%Y-%m-%d}",
-                 help="Main contract = the expiry month flagged is_front=True in matrix (the month with the fewest days to expiry on that date).")
+    st.subheader(t("Main contract (is_front) {m} · {d}", m=month_label(month), d=f"{day:%Y-%m-%d}"),
+                 help=t("Main contract = the expiry month flagged is_front=True in matrix (the month with the fewest days to expiry on that date)."))
     cards = [
-        ("Spot", fmt(row["ETF_close"]), HELP["spot"]),
-        ("Net GEX (M CNY)", fmt(row["net_gex_million"], ".2f"), HELP["net_gex"]),
-        ("Zero gamma", fmt(row["zero_gamma"]), HELP["zero_gamma"]),
-        ("Call wall", fmt(row["call_wall"]), HELP["call_wall"]),
-        ("Put wall", fmt(row["put_wall"]), HELP["put_wall"]),
-        ("Max pain", fmt(row["max_pain"]), HELP["max_pain"]),
-        ("ATM IV", fmt(row["atm_iv"] * 100, ".2f", "%"), HELP["atm_iv"]),
-        ("25Δ skew", fmt(row["call25_put25_iv_skew"] * 100, "+.2f"), HELP["skew"]),
-        ("HV30", fmt(row["hv30"], ".2f", "%"), HELP["hv30"]),
-        ("VIX (30-day)", fmt(vrow["vix30"], ".2f"), vix_help + f" Method on this date: {vrow['vix_method']}."),
-        ("VRP30", fmt(vrow["vrp30_calc"], "+.2f"), HELP["vrp"]),
-        ("Days to expiry", fmt(row["days_to_expiry"], ".0f"), HELP["dte"]),
+        (t("Spot"), fmt(row["ETF_close"]), h("spot")),
+        (t("Net GEX (M CNY)"), fmt(row["net_gex_million"], ".2f"), h("net_gex")),
+        (t("Zero gamma"), fmt(row["zero_gamma"]), h("zero_gamma")),
+        (t("Call wall"), fmt(row["call_wall"]), h("call_wall")),
+        (t("Put wall"), fmt(row["put_wall"]), h("put_wall")),
+        (t("Max pain"), fmt(row["max_pain"]), h("max_pain")),
+        (t("ATM IV"), fmt(row["atm_iv"] * 100, ".2f", "%"), h("atm_iv")),
+        (t("25Δ skew"), fmt(row["call25_put25_iv_skew"] * 100, "+.2f"), h("skew")),
+        ("HV30", fmt(row["hv30"], ".2f", "%"), h("hv30")),
+        (t("VIX (30-day)"), fmt(vrow["vix30"], ".2f"), vix_help + t(" Method on this date: {m}.", m=vrow['vix_method'])),
+        ("VRP30", fmt(vrow["vrp30_calc"], "+.2f"), h("vrp")),
+        (t("Days to expiry"), fmt(row["days_to_expiry"], ".0f"), h("dte")),
     ]
     with st.container(border=True):
         card_grid(cards)
@@ -135,104 +142,106 @@ def main() -> None:
     month_dates = list(matrix.loc[matrix["month"] == month, "date"])
     k = month_dates.index(day)
     c1, c2 = st.columns([3, 1], gap="large", vertical_alignment="bottom")
-    c1.subheader("Volatility smile", help="Implied volatility by strike for the main contract on the selected date "
+    c1.subheader(t("Volatility smile"), help=t("Implied volatility by strike for the main contract on the selected date "
                                   "(contract detail; IV ≤ 0 not drawn). Left: calls, right: puts. Dashed lines: the same "
                                   "expiry month on the previous N trading days (same colour, thinner and fainter = earlier). Vertical lines: ETF close "
-                                  "of each shown day, styled like that day's curve. Untick Overlay previous days to draw only the day N trading days back.")
-    n_prev = c2.select_slider("Previous N trading days", options=list(range(6)), value=0, key="hist_prev",
-                              help="How many trading days back (same expiry month) the smile reaches.")
-    overlay = c2.checkbox("Overlay previous days", value=True, key="hist_overlay",
-                          help="On: the selected day plus the previous N trading days are drawn together. "
-                               "Off: only the single day N trading days back is drawn, with that day's ETF close line.")
+                                  "of each shown day, styled like that day's curve. Untick Overlay previous days to draw only the day N trading days back."))
+    n_prev = c2.select_slider(t("Previous N trading days"), options=list(range(6)), value=0, key="hist_prev",
+                              help=t("How many trading days back (same expiry month) the smile reaches."))
+    overlay = c2.checkbox(t("Overlay previous days"), value=True, key="hist_overlay",
+                          help=t("On: the selected day plus the previous N trading days are drawn together. "
+                                 "Off: only the single day N trading days back is drawn, with that day's ETF close line."))
     smile_days = month_dates[max(0, k - n_prev):k + 1]          # loaded (also feeds the AI summary)
     plot_days = smile_days if overlay else [smile_days[0]]       # overlay off: only day N back
     smile_day = plot_days[-1]
     detail = None
     if not gex_file.is_file():
-        st.info("No gex.parquet detail for this ETF; smile unavailable.")
+        st.info(t("No gex.parquet detail for this ETF; smile unavailable."))
     else:
         try:
-            with st.spinner("Loading detail…"):
+            with st.spinner(t("Loading detail…")):
                 detail = load_smiles(code, gex_mtime, month, tuple(smile_days))
             if detail[detail["date"] == smile_day].empty:
-                st.warning(f"No contract detail in gex.parquet for {smile_day:%Y-%m-%d} / {month_label(month)}.")
+                st.warning(t("No contract detail in gex.parquet for {d} / {m}.", d=f"{smile_day:%Y-%m-%d}", m=month_label(month)))
             else:
                 closes = matrix.drop_duplicates("date").set_index("date")["ETF_close"]
                 spots = closes[closes.index.isin(plot_days)].to_dict()
                 spot_sel = float(spots.get(smile_day, row["ETF_close"]))
                 if not overlay and smile_day != day:
-                    st.caption(f"Overlay off: showing only {smile_day:%Y-%m-%d} ({n_prev} trading day(s) before the selected date).")
+                    st.caption(t("Overlay off: showing only {d} ({n} trading day(s) before the selected date).",
+                                 d=f"{smile_day:%Y-%m-%d}", n=n_prev))
                 show(smile_figure(detail[detail["date"].isin(plot_days)], plot_days, spot_sel, spots), "hist_smile", 500)
         except Exception as exc:
-            st.error(f"Could not read gex detail: {exc}")
+            st.error(t("Could not read gex detail: {exc}", exc=exc))
 
     # --- main contract lifetime
     spacer()
     life = matrix[matrix["month"] == month]
-    st.subheader(f"{month_label(month)} contract lifetime: key levels",
-                 help="All trading days on which this expiry month exists in matrix. Top: ETF close, call wall, put wall, "
-                      "max pain, zero gamma. Bottom: this month's net GEX (M CNY). Vertical line: selected date.")
+    st.subheader(t("{m} contract lifetime: key levels", m=month_label(month)),
+                 help=t("All trading days on which this expiry month exists in matrix. Top: ETF close, call wall, put wall, "
+                      "max pain, zero gamma. Bottom: this month's net GEX (M CNY). Vertical line: selected date."))
     show(lifetime_figure(life, day), "hist_life", 580, dates=True)
     spacer(28)
 
     # ================= Module 2: date range =================
-    st.header("② Date-range view", divider="gray")
+    st.header(t("② Date-range view"), divider="gray")
     c1, c2 = st.columns([2, 3], gap="large")
     default_start = max(dates[0], dates[-1] - pd.DateOffset(years=1))
-    rng = c1.date_input("Date range", value=(default_start, dates[-1]), min_value=dates[0], max_value=dates[-1],
+    rng = c1.date_input(t("Date range"), value=(default_start, dates[-1]), min_value=dates[0], max_value=dates[-1],
                         key="hist_range")
     if not isinstance(rng, (tuple, list)) or len(rng) != 2:
-        st.info("Select a start and an end date.")
+        st.info(t("Select a start and an end date."))
         st.stop()
     start, end = pd.Timestamp(rng[0]), pd.Timestamp(rng[1])
     in_range = matrix[(matrix["date"] >= start) & (matrix["date"] <= end)]
-    mode = c2.radio("Contracts", ["Main contract only (is_front)", "Choose expiry months"], horizontal=True, key="hist_mode")
+    mode = c2.radio(t("Contracts"), ["Main contract only (is_front)", "Choose expiry months"], horizontal=True,
+                    key="hist_mode", format_func=t)
     picked = []
     if mode.startswith("Main"):
         sub = in_range[in_range["is_front"]]
     else:
         months = sorted(in_range["month"].unique())
-        picked = c2.multiselect("Expiry months", months, default=months[-3:], format_func=month_label, key="hist_months")
+        picked = c2.multiselect(t("Expiry months"), months, default=months[-3:], format_func=month_label, key="hist_months")
         sub = in_range[in_range["month"].isin(picked)]
     if sub.empty:
-        st.info("No data for the selected range / months.")
+        st.info(t("No data for the selected range / months."))
         st.stop()
     price = in_range[in_range["is_front"]][["date", "ETF_close"]]
 
-    st.subheader("ETF price & net GEX", help="Top: ETF close. Bottom: net GEX (M CNY): with main contract only, a "
+    st.subheader(t("ETF price & net GEX"), help=t("Top: ETF close. Bottom: net GEX (M CNY): with main contract only, a "
                                        "continuous series of each day's main month (switches month at expiry); with "
-                                       "chosen months, one line per expiry month.")
+                                       "chosen months, one line per expiry month."))
     spacer()
     show(price_gex_figure(price, sub, by_month=not mode.startswith("Main")), "hist_price_gex", 580, dates=True)
     spacer()
 
     v = vix[(vix["date"] >= start) & (vix["date"] <= end)]
-    st.subheader("VIX vs historical volatility", help="Top: VIX (30-day, CBOE method on settlement prices, see "
-                                     "Metric definitions" + ("; near month rolled at <7 DTE" if roll else "") +
-                                     "), HV30 (solid), HV60/HV90 (dashed). Bottom: VRP30 = VIX − HV30. "
-                                     "All in %; not affected by the contract filter.")
+    st.subheader(t("VIX vs historical volatility"), help=t(
+        "Top: VIX (30-day, CBOE method on settlement prices, see Metric definitions{roll}), HV30 (solid), "
+        "HV60/HV90 (dashed). Bottom: VRP30 = VIX − HV30. All in %; not affected by the contract filter.",
+        roll=t("; near month rolled at <7 DTE") if roll else ""))
     show(vol_figure(v), "hist_vol", 540, dates=True)
     spacer()
 
-    with st.expander("Data preview & download"):
+    with st.expander(t("Data preview & download")):
         drop = ["vix30", "vix_method", "vrp30"] if roll else ["vix30_roll7", "vix_method_roll7", "vrp30_roll7"]
         table = sub.drop(columns=drop).sort_values(["date", "days_to_expiry"])
         st.dataframe(table, hide_index=True, height=380)
-        st.download_button("Download CSV", table.to_csv(index=False).encode("utf-8-sig"),
+        st.download_button(t("Download CSV"), table.to_csv(index=False).encode("utf-8-sig"),
                            file_name=f"{code}_{start:%Y%m%d}_{end:%Y%m%d}.csv", mime="text/csv")
 
     render_ai_summary(code, day, month, cards, detail, smile_days, row, life, start, end, mode, picked, sub, v)
 
-    with st.expander("Metric definitions"):
-        st.markdown("\n".join([
+    with st.expander(t("Metric definitions")):
+        st.markdown("\n".join(t(line) for line in [
             "- **Main contract (is_front)**: the expiry month flagged `is_front=True` in matrix, i.e. the month with the fewest days to expiry (not selected by volume), held until expiry.",
             "- **Net GEX (M CNY)**: Σ gamma × OI × multiplier × spot² × 1%, calls +, puts −.",
             "- **Call wall / Put wall**: strike with the largest call / put open interest. **Max pain**: strike minimising total intrinsic value of open options at expiry.",
-            "- **Zero gamma**: " + HELP["zero_gamma"],
-            "- **ATM IV**: " + HELP["atm_iv"],
+            t("- **Zero gamma**: ") + h("zero_gamma"),
+            t("- **ATM IV**: ") + h("atm_iv"),
             "- **IV**: stored as a decimal, shown in %. **HV** and **VIX** are stored in %.",
-            "- **HV30/60/90**: " + HELP["hv30"].replace("30 trading", "N trading"),
-            "- **VIX (30-day)**: " + HELP["vix"] + HELP["vix_roll"] + " (toggle in the sidebar, default off).",
+            t("- **HV30/60/90**: ") + h("hv30_n"),
+            t("- **VIX (30-day)**: ") + h("vix") + h("vix_roll") + t(" (toggle in the sidebar, default off)."),
             "- **VRP30**: VIX (30-day) − HV30.",
             "- **Risk-free rate**: Shibor (O/N … 1Y) linearly interpolated to each expiry's days to expiry.",
             "- All metrics use the same functions as the Live page.",
@@ -241,39 +250,40 @@ def main() -> None:
 
 def render_ai_summary(code, day, month, cards, detail, smile_days, row, life, start, end, mode, picked, sub, v):
     """Optional LLM summary of exactly what is on screen (History page only)."""
-    st.header("AI summary", divider="gray")
-    if not st.toggle("Summarize current view (AI)", key="hist_ai_on",
-                     help="Sends only the aggregated figures shown on this page (cards with their definitions, "
+    st.header(t("AI summary"), divider="gray")
+    lang = get_lang()
+    if not st.toggle(t("Summarize current view (AI)"), key="hist_ai_on",
+                     help=t("Sends only the aggregated figures shown on this page (cards with their definitions, "
                           "smile statistics, contract-lifetime and date-range summaries; no raw contract detail) "
-                          "to the configured LLM (app default via OpenRouter, or your own key), on request."):
+                          "to the configured LLM (app default via OpenRouter, or your own key), on request.")):
         return
-    with st.expander("Use your own LLM API", expanded=False):
-        st.text_input("API key", type="password", key="ai_user_key", placeholder="sk-…",
-                      help="Any OpenAI-compatible API key. Kept only in this browser session (st.session_state); "
-                           "never written to a file or log. Leave empty to use the app default key.")
-        st.text_input("Model", key="ai_user_model", placeholder=AI.DEFAULT_MODEL,
-                      help=f"Model id at the chosen endpoint. Default: {AI.DEFAULT_MODEL}.")
+    with st.expander(t("Use your own LLM API"), expanded=False):
+        st.text_input(t("API key"), type="password", key="ai_user_key", placeholder="sk-…",
+                      help=t("Any OpenAI-compatible API key. Kept only in this browser session (st.session_state); "
+                             "never written to a file or log. Leave empty to use the app default key."))
+        st.text_input(t("Model"), key="ai_user_model", placeholder=AI.DEFAULT_MODEL,
+                      help=t("Model id at the chosen endpoint. Default: {m}.", m=AI.DEFAULT_MODEL))
         st.text_input("Base URL", key="ai_user_base", placeholder=AI.BASE_URL,
-                      help=f"OpenAI-compatible endpoint. Default: {AI.BASE_URL}.")
-        st.caption("Model and base URL apply only to your own key. Your key is not counted against the app usage cap.")
+                      help=t("OpenAI-compatible endpoint. Default: {u}.", u=AI.BASE_URL))
+        st.caption(t("Model and base URL apply only to your own key. Your key is not counted against the app usage cap."))
     cfg = AI.resolve_llm_config(st.session_state.get("ai_user_key", ""), st.session_state.get("ai_user_model", ""),
                                 st.session_state.get("ai_user_base", ""))
     api_key = cfg["api_key"]
     if cfg["source"] == "user":
-        st.caption(f"Using your key · model {cfg['model']} · {cfg['base_url']}")
+        st.caption(t("Using your key · model {m} · {u}", m=cfg['model'], u=cfg['base_url']))
     elif cfg["source"] == "default":
-        st.caption(f"Using app default key · model {cfg['model']}")
+        st.caption(t("Using app default key · model {m}", m=cfg['model']))
     main_only = mode.startswith("Main")
     signature = (code, str(day.date()), len(smile_days), str(start.date()), str(end.date()),
-                 "main" if main_only else ",".join(map(str, picked)), cfg["model"], cfg["base_url"])
+                 "main" if main_only else ",".join(map(str, picked)), cfg["model"], cfg["base_url"], lang)
     store = st.session_state.setdefault("hist_ai_results", {})
     if not api_key:
-        st.info("No API key available yet. Enter your own key under **Use your own LLM API** above, or add "
-                "`OPENROUTER_API_KEY=...` to the project's `.env` (or the app's Secrets on Streamlit Cloud) and restart.")
+        st.info(t("No API key available yet. Enter your own key under **Use your own LLM API** above, or add "
+                  "`OPENROUTER_API_KEY=...` to the project's `.env` (or the app's Secrets on Streamlit Cloud) and restart."))
     remaining = AI.usage_remaining() if cfg["count_usage"] else 1
     if remaining <= 0:
-        st.warning(f"App default key usage cap reached ({AI.USAGE_CAP:,} calls). Enter your own key to continue.")
-    clicked = st.button("Generate summary", key="hist_ai_go", disabled=not api_key or remaining <= 0)
+        st.warning(t("App default key usage cap reached ({n} calls). Enter your own key to continue.", n=f"{AI.USAGE_CAP:,}"))
+    clicked = st.button(t("Generate summary"), key="hist_ai_go", disabled=not api_key or remaining <= 0)
     if clicked:
         smile_lines = (AI.smile_stats(detail, day, float(row["ETF_close"]), len(smile_days) - 1)
                        if detail is not None else ["Smile: not available on screen."])
@@ -284,24 +294,24 @@ def render_ai_summary(code, day, month, cards, detail, smile_days, row, life, st
             start, end, months_desc, sub, v, main_only,
             extra_definitions=["Main contract (is_front): expiry month with the fewest days to expiry, held until expiry.",
                                "IV values in %; HV, VIX, VRP30 in vol points / %."])
-        with st.spinner(f"Asking {cfg['model']}…"):
+        with st.spinner(t("Asking {m}…", m=cfg['model'])):
             try:
                 store[signature] = AI.generate_view_summary(
                     api_key, view_text, view_df, defs,
                     meta={"etf": code, "date": str(day.date()), "range": f"{start.date()}..{end.date()}",
                           "contracts": signature[5], "key_source": cfg["source"]},
-                    model=cfg["model"], base_url=cfg["base_url"], count_usage=cfg["count_usage"])
+                    model=cfg["model"], base_url=cfg["base_url"], count_usage=cfg["count_usage"], language=lang)
             except Exception as exc:
                 msg = AI.friendly_error(exc, cfg["model"]).replace(api_key, "***")
-                st.error(f"AI summary failed: {msg}")
+                st.error(t("AI summary failed: {msg}", msg=msg))
     result = store.get(signature)
     if result:
         with st.container(border=True):
             st.markdown(result["text"])
-            st.caption(f"AI-generated, based only on figures shown; not investment advice · "
-                       f"model {result['model']} · {result['time']}")
+            st.caption(t("AI-generated, based only on figures shown; not investment advice · model {m} · {time}",
+                         m=result['model'], time=result['time']))
     elif api_key and not clicked:
-        st.caption("Click **Generate summary** to summarise the current view (one API call per view).")
+        st.caption(t("Click **Generate summary** to summarise the current view (one API call per view)."))
 
 
 main()

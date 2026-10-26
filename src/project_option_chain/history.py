@@ -19,12 +19,15 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 from .charts import CALL, CURVE, MAX_PAIN, MONTH_COLORS, PUT, SPOT, ZERO_G
+from .i18n import t
+from .i18n_zh import ZH_HELP
 from .config import HISTORY_DIR
 
 DATA_ROOT = Path(os.environ.get("ETF_HIST_DATA", HISTORY_DIR))
 NAMES = {"510050": "ChinaAMC SSE 50 ETF", "510300": "Huatai-PB CSI 300 ETF", "510500": "China Southern CSI 500 ETF",
          "588000": "ChinaAMC STAR 50 ETF", "588080": "E Fund STAR 50 ETF"}
 ROLL_LABEL = "Roll near month at <7 DTE"
+
 
 
 def fmt(v, spec=".3f", suffix=""):
@@ -118,7 +121,14 @@ HELP = {
                 "and the next two expiries are used.",
     "vrp": "VRP30 = VIX (30-day) − HV30, in vol points.",
     "dte": "Calendar days to expiry of the main contract (is_front).",
+    "hv30_n": "Annualised sample standard deviation of the underlying's daily log returns over the last N trading "
+              "days (× √252), in %.",
 }
+
+
+def help_text(key: str, lang: str = "en") -> str:
+    """Metric definition for tooltips; definitions only, in the UI language."""
+    return ZH_HELP.get(key, HELP[key]) if lang == "zh" else HELP[key]
 
 
 # ---------------------------------------------------------------------------
@@ -146,7 +156,7 @@ def smile_figure(detail: pd.DataFrame, days: list[pd.Timestamp], spot: float,
     spots.setdefault(sel, spot)
     n_prev = len(days) - 1
     fig = make_subplots(rows=1, cols=2, shared_yaxes=True, horizontal_spacing=0.06,
-                        subplot_titles=("Call IV", "Put IV"))
+                        subplot_titles=(t("Call IV"), t("Put IV")))
     valid = detail[detail["iv"] > 0]
     y_lo = float(valid["iv"].min() * 100) if len(valid) else 0.0
     y_hi = float(valid["iv"].max() * 100) if len(valid) else 1.0
@@ -155,7 +165,7 @@ def smile_figure(detail: pd.DataFrame, days: list[pd.Timestamp], spot: float,
             age = len(days) - 1 - i  # 0 = selected day
             sty = overlay_style(age, n_prev)
             is_sel = age == 0
-            label = f"{d:%Y-%m-%d}" + ("" if len(days) == 1 else " (selected)" if is_sel else f" (−{age}d)")
+            label = f"{d:%Y-%m-%d}" + ("" if len(days) == 1 else t(" (selected)") if is_sel else f" (−{age}d)")
             sub = detail[(detail["date"] == d) & (detail["option_type"] == kind) & (detail["iv"] > 0)].sort_values("strike")
             if not sub.empty:
                 fig.add_trace(go.Scatter(
@@ -169,46 +179,46 @@ def smile_figure(detail: pd.DataFrame, days: list[pd.Timestamp], spot: float,
             px = spots.get(d)
             if px is not None and np.isfinite(px):
                 fig.add_trace(go.Scatter(
-                    x=[px, px], y=[y_lo, y_hi], mode="lines", name=f"ETF close {d:%m-%d}: {px:.3f}",
+                    x=[px, px], y=[y_lo, y_hi], mode="lines", name=t("ETF close {d}: {px}", d=f"{d:%m-%d}", px=f"{px:.3f}"),
                     legendgroup=str(d.date()), showlegend=False,
                     line=dict(color=SPOT, width=sty["width"] * 0.8, dash=sty["dash"]), opacity=sty["opacity"],
                     meta={"kind": "price", "date": f"{d:%Y-%m-%d}", "side": kind},
-                    hovertemplate=f"{d:%Y-%m-%d}<br>ETF close {px:.3f}<extra></extra>"),
+                    hovertemplate=f"{d:%Y-%m-%d}<br>" + t("ETF close") + f" {px:.3f}<extra></extra>"),
                     row=1, col=col)
         fig.add_annotation(x=spots[sel], y=y_hi, xref=f"x{'' if col == 1 else col}", yref="y",
-                           text=f"{sel:%Y-%m-%d} close {spots[sel]:.3f}", showarrow=False, yshift=12,
+                           text=t("{d} close {px}", d=f"{sel:%Y-%m-%d}", px=f"{spots[sel]:.3f}"), showarrow=False, yshift=12,
                            font=dict(color=SPOT, size=11))
-        fig.update_xaxes(title_text="Strike price", row=1, col=col)
-    fig.update_yaxes(title_text="Implied volatility (%)", row=1, col=1)
-    fig.update_layout(hovermode="closest", legend=dict(y=1.12, orientation="h", title_text="Trading day"))
+        fig.update_xaxes(title_text=t("Strike price"), row=1, col=col)
+    fig.update_yaxes(title_text=t("Implied volatility (%)"), row=1, col=1)
+    fig.update_layout(hovermode="closest", legend=dict(y=1.12, orientation="h", title_text=t("Trading day")))
     return fig
 
 
 def lifetime_figure(life: pd.DataFrame, sel: pd.Timestamp) -> go.Figure:
     fig = make_subplots(rows=2, cols=1, shared_xaxes=True, row_heights=[0.68, 0.32], vertical_spacing=0.05)
-    for col, name, color, dash in (("ETF_close", "ETF close", SPOT, "solid"),
-                                   ("call_wall", "Call wall", CALL, "dot"),
-                                   ("put_wall", "Put wall", PUT, "dot"),
-                                   ("max_pain", "Max pain", MAX_PAIN, "dash"),
-                                   ("zero_gamma", "Zero gamma", ZERO_G, "dash")):
+    for col, name, color, dash in (("ETF_close", t("ETF close"), SPOT, "solid"),
+                                   ("call_wall", t("Call wall"), CALL, "dot"),
+                                   ("put_wall", t("Put wall"), PUT, "dot"),
+                                   ("max_pain", t("Max pain"), MAX_PAIN, "dash"),
+                                   ("zero_gamma", t("Zero gamma"), ZERO_G, "dash")):
         fig.add_trace(go.Scatter(x=life["date"], y=life[col], name=name, mode="lines",
                                  line=dict(color=color, dash=dash, width=2.4 if col == "ETF_close" else 1.6),
                                  line_shape="hv" if col in ("call_wall", "put_wall", "max_pain") else "linear",
                                  hovertemplate=f"{name} %{{y:.3f}}<extra></extra>"), row=1, col=1)
     gex = life["net_gex_million"]
-    fig.add_trace(go.Bar(x=life["date"], y=gex, name="Net GEX (M CNY)",
+    fig.add_trace(go.Bar(x=life["date"], y=gex, name=t("Net GEX (M CNY)"),
                          marker_color=np.where(gex >= 0, CALL, PUT), opacity=0.75,
                          hovertemplate="Net GEX %{y:.2f}M<extra></extra>"), row=2, col=1)
     for r in (1, 2):
         fig.add_vline(x=sel, line=dict(color=CURVE, width=1, dash="dot"), row=r, col=1)
-    fig.update_yaxes(title_text="Price", row=1, col=1)
-    fig.update_yaxes(title_text="Net GEX (M CNY)", row=2, col=1)
+    fig.update_yaxes(title_text=t("Price"), row=1, col=1)
+    fig.update_yaxes(title_text=t("Net GEX (M CNY)"), row=2, col=1)
     return fig
 
 
 def price_gex_figure(price: pd.DataFrame, gex: pd.DataFrame, by_month: bool) -> go.Figure:
     fig = make_subplots(rows=2, cols=1, shared_xaxes=True, row_heights=[0.55, 0.45], vertical_spacing=0.05)
-    fig.add_trace(go.Scatter(x=price["date"], y=price["ETF_close"], name="ETF close", mode="lines",
+    fig.add_trace(go.Scatter(x=price["date"], y=price["ETF_close"], name=t("ETF close"), mode="lines",
                              line=dict(color=CURVE, width=1.8),
                              hovertemplate="Close %{y:.3f}<extra></extra>"), row=1, col=1)
     if by_month:
@@ -218,17 +228,17 @@ def price_gex_figure(price: pd.DataFrame, gex: pd.DataFrame, by_month: bool) -> 
                                      hovertemplate=month_label(m) + " %{y:.2f}<extra></extra>"), row=2, col=1)
     else:
         v = gex["net_gex_million"]
-        fig.add_trace(go.Bar(x=gex["date"], y=v, name="Main contract net GEX", marker_color=np.where(v >= 0, CALL, PUT),
+        fig.add_trace(go.Bar(x=gex["date"], y=v, name=t("Main contract net GEX"), marker_color=np.where(v >= 0, CALL, PUT),
                              marker_line_width=0, hovertemplate="Net GEX %{y:.2f}M<extra></extra>"), row=2, col=1)
-    fig.update_yaxes(title_text="Price", row=1, col=1)
-    fig.update_yaxes(title_text="Net GEX (M CNY)", row=2, col=1)
+    fig.update_yaxes(title_text=t("Price"), row=1, col=1)
+    fig.update_yaxes(title_text=t("Net GEX (M CNY)"), row=2, col=1)
     fig.update_layout(bargap=0)
     return fig
 
 
 def vol_figure(v: pd.DataFrame) -> go.Figure:
     fig = make_subplots(rows=2, cols=1, shared_xaxes=True, row_heights=[0.7, 0.3], vertical_spacing=0.05)
-    fig.add_trace(go.Scatter(x=v["date"], y=v["vix30"], name="VIX (30-day)", mode="lines",
+    fig.add_trace(go.Scatter(x=v["date"], y=v["vix30"], name=t("VIX (30-day)"), mode="lines",
                              line=dict(color=ZERO_G, width=2), hovertemplate="VIX %{y:.2f}<extra></extra>"), row=1, col=1)
     for col, name, color, dash, width in (("hv30", "HV30", SPOT, "solid", 1.8),
                                           ("hv60", "HV60", "#90a4ae", "dash", 1.1),
@@ -239,7 +249,7 @@ def vol_figure(v: pd.DataFrame) -> go.Figure:
     r = v["vrp30_calc"]
     fig.add_trace(go.Bar(x=v["date"], y=r, name="VRP30", marker_color=np.where(r >= 0, CALL, PUT),
                          marker_line_width=0, hovertemplate="VRP30 %{y:.2f}<extra></extra>"), row=2, col=1)
-    fig.update_yaxes(title_text="Volatility (%)", row=1, col=1)
+    fig.update_yaxes(title_text=t("Volatility (%)"), row=1, col=1)
     fig.update_yaxes(title_text="VRP30", row=2, col=1)
     fig.update_layout(bargap=0)
     return fig

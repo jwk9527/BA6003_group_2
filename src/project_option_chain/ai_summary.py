@@ -47,6 +47,20 @@ predictions or recommendations.
 - If the supplied information is insufficient for a statement, say so explicitly.
 - Write in English, plain text, concise."""
 
+LANGUAGE_RULES = {
+    "en": "- Write in English, plain text, concise.",
+    "zh": ("- Write in Simplified Chinese (简体中文), plain text, concise. Keep metric abbreviations "
+           "(GEX, IV, HV30, VIX, VRP30, 25Δ skew) and all numbers and units exactly as supplied."),
+}
+
+
+def system_prompt(language: str = "en") -> str:
+    """SYSTEM_PROMPT with the output-language rule for the UI language ("en" | "zh");
+    all other rules (incl. the conservative empirical-interpretation rule) are unchanged."""
+    rule = LANGUAGE_RULES.get(language, LANGUAGE_RULES["en"])
+    return SYSTEM_PROMPT.replace(LANGUAGE_RULES["en"], rule)
+
+
 USER_TEMPLATE = """Summarise the dashboard view below.
 
 Format:
@@ -290,16 +304,19 @@ def extract_text(resp) -> tuple[str, str | None]:
 def generate_view_summary(api_key: str, current_view_text: str, view_df: pd.DataFrame | None,
                           definitions: str = "", *, model: str | None = None, client=None,
                           meta: dict | None = None, log_file: Path | None = None,
-                          base_url: str | None = None, count_usage: bool = True) -> dict:
+                          base_url: str | None = None, count_usage: bool = True,
+                          language: str = "en") -> dict:
     """Ask the model for a summary of the supplied view. Returns
     {"text", "model", "latency_s", "usage", "time"}; raises ValueError on an empty response.
     ``client`` may be injected (tests); otherwise an OpenAI client pointed at ``base_url``
     (default OpenRouter). ``count_usage=False`` (user's own key) skips the app usage cap.
     The API key is never logged or returned."""
     model = model or resolve_model()
+    sys_prompt = system_prompt(language)
     user_prompt = build_prompt(definitions, current_view_text, view_df)
     record = {"timestamp": datetime.now(TZ).isoformat(timespec="seconds"), "model": model, **(meta or {}),
-              "system_prompt": SYSTEM_PROMPT, "user_prompt": user_prompt}
+              "language": language,
+              "system_prompt": sys_prompt, "user_prompt": user_prompt}
     if count_usage and usage_remaining() <= 0:
         raise UsageCapReached(f"AI usage cap reached ({USAGE_CAP:,} calls). The summary feature is disabled; "
                               "raise AI_USAGE_CAP or reset ai_usage.json to re-enable.")
@@ -315,7 +332,7 @@ def generate_view_summary(api_key: str, current_view_text: str, view_df: pd.Data
         extra = {"extra_body": {"reasoning": REASONING}} if "openrouter.ai" in (base_url or BASE_URL) else {}
         resp = client.chat.completions.create(
             model=model, temperature=TEMPERATURE, max_tokens=MAX_TOKENS,
-            messages=[{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": user_prompt}],
+            messages=[{"role": "system", "content": sys_prompt}, {"role": "user", "content": user_prompt}],
             **extra)
         text, finish = extract_text(resp)
         if not text:

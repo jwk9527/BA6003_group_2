@@ -35,3 +35,6 @@ historical_data/
 # macOS
 .DS_Store
 ._*
+
+# Archive backups written by input_contract_list.py
+data/archives/backup/
