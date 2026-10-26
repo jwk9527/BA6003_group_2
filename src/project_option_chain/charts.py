@@ -16,6 +16,7 @@ from plotly.subplots import make_subplots
 from .analytics import fit_iv_smiles
 from .models import ChainAnalysis
 from .i18n import t
+from .fonts import PLOTLY_FONT_FAMILY
 
 # ---------------------------------------------------------------------------
 # Theme
@@ -39,12 +40,13 @@ pio.templates[TEMPLATE_NAME] = go.layout.Template(
     layout=dict(
         paper_bgcolor=BG,
         plot_bgcolor=PANEL,
-        font=dict(family="Inter, Segoe UI, Helvetica, Arial, PingFang SC, Microsoft YaHei, sans-serif", color=TEXT, size=12),
+        font=dict(family=PLOTLY_FONT_FAMILY, color=TEXT, size=12),
         colorway=[SPOT, CALL, PUT, ZERO_G, MAX_PAIN, CURVE],
         xaxis=dict(gridcolor=GRID, zerolinecolor=GRID, linecolor=GRID),
         yaxis=dict(gridcolor=GRID, zerolinecolor=GRID, linecolor=GRID),
-        hoverlabel=dict(bgcolor="#1f2630", bordercolor=GRID, font=dict(color=TEXT)),
-        legend=dict(bgcolor="rgba(0,0,0,0)", orientation="h", y=1.02, yanchor="bottom", x=0, xanchor="left"),
+        hoverlabel=dict(bgcolor="#1f2630", bordercolor=GRID, font=dict(family=PLOTLY_FONT_FAMILY, color=TEXT)),
+        annotationdefaults=dict(font=dict(family=PLOTLY_FONT_FAMILY)),
+        legend=dict(font=dict(family=PLOTLY_FONT_FAMILY), bgcolor="rgba(0,0,0,0)", orientation="h", y=1.02, yanchor="bottom", x=0, xanchor="left"),
         margin=dict(l=60, r=60, t=70, b=50),
         hovermode="x unified",
     )

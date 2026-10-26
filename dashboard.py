@@ -19,9 +19,11 @@ ROOT = Path(__file__).resolve().parent
 if str(ROOT / "src") not in sys.path:
     sys.path.insert(0, str(ROOT / "src"))
 
+from project_option_chain.fonts import inject_ui_fonts  # noqa: E402
 from project_option_chain.i18n import language_toggle, t  # noqa: E402
 
 st.set_page_config(page_title="Option-Chain Dashboard", layout="wide")
+inject_ui_fonts(st)  # unified Latin + CJK font stack for every page
 
 language_toggle(st.sidebar)  # English / 中文, stored in st.session_state["lang"]
 nav = st.navigation([
