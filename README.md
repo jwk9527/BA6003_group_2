@@ -1,6 +1,15 @@
-# A-share ETF Option-Chain Dashboard (v0.5.2)
+# A-share ETF Option-Chain Dashboard (v0.5.3)
 
-[English](#english) · [简体中文](#简体中文)
+
+---
+## 0.5.3 Update:
+
+- Add CN translation
+- Add input_contract_list.py into project file
+---
+## 0.5.2 Version
+
+[English](#english) · [中文简介](#中文简介)
 
 <a id="english"></a>
 ## English
@@ -178,8 +187,8 @@ read -s IFIND_TOKEN && export IFIND_TOKEN     # paste the token; nothing is echo
 
 ---
 
-<a id="简体中文"></a>
-## 简体中文
+<a id="中文简介"></a>
+## 中文简介
 
 ### 项目简介
 
